@@ -1,2 +1,23 @@
-# react-project-generator
-A React application that will generate a new React project, components, and pages.
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+
+
+This approach to exporting components is widely compatible. Use named exports.
+
+ComponentName.jsx
+    function ComponentName {};
+	export default ComponentName;
+
+index.js
+	export { default as ComponentName } from "./ComponentName";
+
+OtherComponent.jsx
+    import {ComponentName} from "@components/ComponentName";
+

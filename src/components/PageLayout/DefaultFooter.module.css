@@ -1,0 +1,41 @@
+.footer {
+  align-items: center;
+  background-color: #28005a;
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.copyright {
+  color: white;
+  font-size: 0.75rem;
+  padding-right: 1rem;
+}
+
+.link {
+  text-decoration: none;
+  color: white;
+  font-size: 0.9rem;
+  margin-right: 2rem;
+  transition: all 0.33s ease;
+}
+
+.link:hover {
+  color: #00e6ad;
+}
+
+.logoLink {
+  margin-right: 2rem;
+}
+
+.footer :global(.underlineFromCenter) {
+  --underline_color: #fff;
+}
+
+.footer :global(a .magCorporateLogo .text) {
+  fill: white;
+}
+
+.footer :global(.magCorporateLogo svg) {
+  height: 25px;
+}

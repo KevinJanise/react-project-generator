@@ -1,0 +1,128 @@
+:root {
+  --header-background: #3c3a45;
+  --header-text-color: #f2f2f2;
+  --background-color: #dfdede;
+  --text-color: #222;
+}
+
+*,
+:after,
+:before {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: Arial, sans-serif;
+  font-weight: 400;
+  line-height: 1.625;
+  margin: 0;
+  padding: 0;
+  transition: background-color 1.3s ease, color 1.3s ease;
+}
+
+.clearfix:after {
+  content: " ";
+  clear: both;
+  display: block;
+  height: 0;
+}
+
+.redOutline {
+  outline: 2px dashed red;
+}
+
+
+/* overwriting styles from main.scss and theme.css */
+body,
+html {
+  min-width: 0px !important;
+  max-width: unset !important;
+}
+
+.underlineFromCenter {
+  --underline_color: #333;
+
+  display: inline-block;
+  position: relative;
+}
+
+.underlineFromCenter:hover::before {
+  transform: scaleX(1);
+}
+
+.underlineFromCenter::before {
+  content: "";
+  border-bottom: 1px solid var(--underline_color);
+  bottom: -4px;
+  display: block;
+  left: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  width: 100%;
+}
+
+
+/* CSS */
+.button {
+  appearance: none;
+  backface-visibility: hidden;
+  background-color: #2972d3;
+  border-radius: 7px;
+  border-style: none;
+  box-shadow: none;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font-family: Arial,sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.5;
+  outline: none;
+  overflow: hidden;
+  padding: 14px 30px;
+  padding: .5rem 1rem .5rem 1rem;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  transform: translate3d(0, 0, 0);
+  transition: all .3s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: #1366d6;
+  box-shadow: rgba(0, 0, 0, .05) 0 5px 30px, rgba(0, 0, 0, .05) 0 1px 4px;
+  opacity: 1;
+  transform: translateY(0);
+  transition-duration: .35s;
+}
+
+.button:hover:after {
+  opacity: .5;
+}
+
+.button:active {
+  box-shadow: rgba(0, 0, 0, .1) 0 3px 6px 0, rgba(0, 0, 0, .1) 0 0 10px 0, rgba(0, 0, 0, .1) 0 1px 4px -1px;
+  transform: translateY(2px);
+  transition-duration: .35s;
+}
+
+.button:active:after {
+  opacity: 1;
+}

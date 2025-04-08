@@ -1,0 +1,30 @@
+.menuBar {
+  display: flex;
+  background: rgb(241, 240, 242);
+  color: rgb(28, 27, 32);
+  border-color: rgb(172, 170, 181);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  justify-content: space-between;
+  padding: 1rem 1rem 1rem 1.5rem;
+}
+
+.menuItem {
+  background: none;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 400;
+  text-decoration: none;
+  transition: all 0.33s ease;
+  white-space: nowrap;
+  letter-spacing: 0.25px;
+}
+
+.menuItem:hover {
+  color: #5023fa;
+  color: #1366d6;
+}
+
+.menuItem:not(:last-child) {
+  margin-right: 1.25rem;
+}

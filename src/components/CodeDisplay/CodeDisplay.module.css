@@ -1,0 +1,40 @@
+:root {
+  --borderRadius: .5rem;
+}
+
+.copyIcon {
+    width: 24px;
+    height: 24px;
+    position: relative;
+    top: .4rem;
+    left: 1rem;
+    cursor:pointer;
+}
+
+.zipIcon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  top: .4rem;
+  left: 1rem;
+}
+
+.codeDisplay {
+    border: 1px solid #d4d4d4;
+    margin: 1rem;
+    border-radius: var(--borderRadius);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  background: #f4f4f4;
+  padding: 1rem;
+  margin-top: 0;
+  border-top-left-radius: var(--borderRadius);
+  border-top-right-radius: var(--borderRadius);
+}
+
+.code {
+  margin: 1rem;
+}

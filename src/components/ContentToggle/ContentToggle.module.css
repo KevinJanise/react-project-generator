@@ -1,0 +1,52 @@
+
+
+.container {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.header {
+  -webkit-appearance: none;
+  align-items: left;
+  appearance: none;
+  background: none;
+  border: none;
+  color: unset;
+  cursor: pointer;
+  display: flex;
+  justify-content: flex-start;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.header:disabled {
+  color: gray;
+}
+
+.xheader:focus {
+  outline: 2px solid black; /* Or your preferred focus style */
+  outline-offset: 2px;
+}
+
+.arrow {
+  transition: transform 0.3s ease-out;
+  margin-right: 0.5rem;
+  color: #2972d3;
+}
+
+.arrowExpanded {
+  transform: rotate(90deg);
+}
+
+.contentWrapper {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  max-height: var(--content-max-height, 0);
+}
+
+.content {
+  padding: 10px;
+}
+

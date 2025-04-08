@@ -1,0 +1,58 @@
+:root {
+  --grid-column-padding: 0.5rem 1rem;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.row {
+  display: flex;
+  width: 100%;
+}
+
+.column {
+  display: flex;
+  min-height: 1px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--grid-column-padding); /* Default padding */
+}
+
+.column > * {
+  max-width: 100%;
+}
+
+/* Alignment classes */
+.alignLeft { justify-content: flex-start; }
+.alignCenter { justify-content: center; }
+.alignRight { justify-content: flex-end; }
+.alignSpace-between { justify-content: space-between; }
+.alignSpace-around { justify-content: space-around; }
+.alignSpace-evenly { justify-content: space-evenly; }
+.valignTop { align-items: flex-start; }
+.valignCenter { align-items: center; }
+.valignBottom { align-items: flex-end; }
+.valignStretch { align-items: stretch; }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .row.rowCollapse {
+    flex-direction: column;
+  }
+
+  .row.rowCollapse > .column {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+  }
+}
+
+/* Debugging - Only applies in development */
+/*
+.grid   { outline: 1px solid red; }
+.row    { outline: 1px solid blue; }
+.column { outline: 1px solid green; }
+*/

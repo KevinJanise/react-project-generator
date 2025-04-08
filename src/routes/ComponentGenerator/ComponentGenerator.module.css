@@ -1,0 +1,19 @@
+.componentGenerator {
+  /* nothing */
+}
+
+.fileName {
+  background: #f4f4f4;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  margin: 1rem;
+  padding: 1rem;
+}
+
+.zipIcon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  top: .4rem;
+  left: 1rem;
+}

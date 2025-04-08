@@ -1,0 +1,347 @@
+import { parseDate } from './Utils.js';
+
+export function isEmpty(value) {
+    if ((value === undefined) ||
+        (value === null) ||
+        (value.length === 0)) {
+        return true;
+    }
+
+    return false;
+}
+
+export function isAuthenticationCode(value) {
+    // NIYYZ-47W07-VN6B9-STUQ9
+    let pattern = /^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/;
+
+    return value.match(pattern);
+}
+
+export function isNotEmpty(value) {
+    return !isEmpty(value);
+}
+
+// that's a big string ~ 9 quadrillion
+export function hasLength(value, minLength = 0, maxLength = Number.MAX_SAFE_INTEGER, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+    
+    let valueLength = -1;
+    let isMinLengthValid = false;
+    let isMaxLengthValid = false;
+
+    if ((value !== undefined) && (value !== null)) {
+        valueLength = value.length;
+
+        isMinLengthValid = valueLength >= minLength;
+        isMaxLengthValid = valueLength <= maxLength;
+    }
+
+    return isMinLengthValid && isMaxLengthValid;
+}
+
+export function isAlpha(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^[a-zA-Z]+$/;
+
+    return value.match(pattern);
+}
+
+export function isName(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^[a-zA-Z' -]+$/;
+
+    return value.match(pattern);
+}
+
+export function isAlphanumeric(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^[a-zA-Z0-9]+$/;
+
+    return value.match(pattern);
+}
+
+export function isAlphanumericWithSpace(value) {
+    let pattern = /^[a-zA-Z0-9 ]+$/;
+
+    return value.match(pattern);
+}
+
+export function isEqual(valueA, valueB) {
+    return valueA === valueB;
+}
+
+export function isNotEqual(valueA, valueB) {
+    return valueA !== valueB;
+}
+
+export function isEmailAddress(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i;
+
+    return value.match(pattern);
+}
+
+export function isNumeric(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^[0-9]+$/;
+
+    return value.match(pattern);
+}
+
+export function isZipCode(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^\d{5}$|^\d{9}$|^\d{5}-\d{4}$/
+
+    return value.match(pattern);
+}
+
+// 9 digit number
+export function isTaxId(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let pattern = /^\d{9}$/;
+
+    return value.match(pattern);
+}
+
+// 14 digit number
+export function isBillControlNumber(value) {
+    let pattern = /^\d{1,14}$/;
+
+    return value.match(pattern);
+}
+
+// 9-32 digit number
+export function isDocumentId(value) {
+    let pattern = /^[a-zA-Z0-9]{1,32}$/;
+
+    return value.match(pattern);
+}
+
+export function isProviderId(value, isOptional = false) {
+    if (isOptional && isEmpty(value)) {
+        return true;
+    }
+
+    let isValid = false;
+
+    isValid = isAlphanumeric(value) && hasLength(value, 1, 20);
+
+    return isValid;
+}
+
+export function isUserName(value) {
+    let isValid = false;
+
+    isValid = isAlphanumeric(value) && hasLength(value, 6, 14);
+
+    return isValid;
+}
+
+export function isPhoneNumber(value) {
+    let digits = value.replace(/[^\d]/g, "");
+
+    return hasLength(digits, 10, 10) && isNumeric(digits);
+}
+
+export function getNumericCharacterCount(value) {
+    let numCount = 0;
+
+    if (isNotEmpty(value)) {
+        numCount = value.replace(/[^0-9]/g, "").length;
+    }
+
+    return numCount;
+}
+
+export function getCharacterCount(value) {
+    let numCount = 0;
+
+    if (isNotEmpty(value)) {
+        numCount = value.replace(/[^A-Za-z]/g, "").length;
+    }
+
+    return numCount;
+}
+
+export function getUpperCaseCharacterCount(value) {
+    let numCount = 0;
+
+    if (isNotEmpty(value)) {
+        numCount = value.replace(/[^A-Z]/g, "").length;
+    }
+
+    return numCount;
+}
+
+export function getLowerCaseCharacterCount(value) {
+    let numCount = 0;
+
+    if (isNotEmpty(value)) {
+        numCount = value.replace(/[^a-z]/g, "").length;
+    }
+
+    return numCount;
+}
+
+export function getSpecialCharacterCount(value) {
+    let numCount = 0;
+
+    if (isNotEmpty(value)) {
+        numCount = value.replace(/[^_&\-#@]/g, "").length;
+    }
+
+    return numCount;
+}
+
+export function hasAllowablePasswordCharacters(value) {
+    let numCount = 0;
+
+    numCount = value.replace(/[^a-zA-Z0-9_&\-#@]/g, "").length;
+
+    return numCount === value.length;
+}
+
+/*
+Password Requirements:
+
+• Must be 8 to 14 characters
+• Must contain at least one upper case character
+• Must include one numeric character
+• Must contain one lower case character
+• Must contain one special character: _&-#@
+• Must not contain the username*/
+export function isPassword(password, userName) {
+    let isValid = false;
+    let has8To14Chars = false;
+    let hasAtLeastOneNumber = false;
+    let hasAtLeastOneUpperCaseLetter = false;
+    let hasAtLeastOneLowerCaseLetter = false;
+    let doesNotContainUserName = false;
+    let hasAtLeastOneSpecialCharacter = false;
+    let hasAllowableCharacters = false;
+
+    has8To14Chars = hasLength(password, 8, 14);
+    hasAtLeastOneNumber = getNumericCharacterCount(password) > 0;
+    hasAtLeastOneUpperCaseLetter = getUpperCaseCharacterCount(password) > 0;
+    hasAtLeastOneLowerCaseLetter = getLowerCaseCharacterCount(password) > 0;
+    doesNotContainUserName = isEmpty(userName) || !((password.toUpperCase()).includes(userName.toUpperCase()));
+    hasAtLeastOneSpecialCharacter = getSpecialCharacterCount(password) > 0;
+    hasAllowableCharacters = hasAllowablePasswordCharacters(password);
+
+    isValid = has8To14Chars &&
+        hasAtLeastOneNumber &&
+        hasAtLeastOneUpperCaseLetter;
+
+    isValid = isValid &&
+        hasAtLeastOneLowerCaseLetter &&
+        doesNotContainUserName;
+
+    isValid = isValid &&
+        hasAtLeastOneSpecialCharacter &&
+        hasAllowableCharacters;
+
+    return isValid;
+}
+
+// https://stackoverflow.com/questions/15196451/regular-expression-to-validate-datetime-format-mm-dd-yyyy
+//expected input mm/dd/yyyy or mm.dd.yyyy or mm-dd-yyyy or mm dd yyyy
+// Just checks if it looks reasonable
+export function isDateFormat(value) {
+    let pattern = /^(0?[1-9]|1[0-2])[-\\/. ](0?[1-9]|1\d|2\d|3[01])[-\\/. ][0-9]{4}$/;
+
+    if (typeof value === "string") {
+        return isEmpty(value) ? false : value.match(pattern);
+    } else {
+        return false;
+    }
+}
+
+// value can be a string in mm/dd/yyyy form
+// or a date object
+export function isFutureDate(value) {
+    let isFuture = false;
+    let incomingDate = null;
+    let today = null;
+
+    if (value instanceof Date) {
+        incomingDate = value;
+    } else {
+        incomingDate = parseDate(value);
+    }
+
+    if (incomingDate !== null) {
+        today = new Date();
+
+        if (incomingDate > today) {
+            isFuture = true;
+        }
+    }
+
+    return isFuture;
+}
+
+export function isFutureMonth(value) {
+    let isFuture = false;
+    let incomingDate = null;
+    let today = null;
+
+    if (value instanceof Date) {
+        incomingDate = value;
+    } else {
+        incomingDate = parseDate(value);
+    }
+
+    if (incomingDate !== null) {
+        today = new Date();        
+        
+        if ( incomingDate.getFullYear() === today.getFullYear() ) {    		    		
+    		if  ( today.getMonth()<incomingDate.getMonth() ) {
+    			isFuture = true;
+    		}
+    	}
+    }
+
+    return isFuture;
+}
+
+//expected input mm/dd/yyyy or mm.dd.yyyy or mm-dd-yyyy or mm dd yyyy
+// or any combination of those including single digt month and day such as m/d/yyyy
+export function isDate(value) {
+    let date = null;
+    let isValid = false;
+
+    if (value instanceof Date) {
+        date = value;
+    } else {
+        date = parseDate(value);
+    }
+
+    if (date !== null) {
+        isValid = true;
+    }
+
+    return isValid;
+}

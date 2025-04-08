@@ -1,0 +1,1 @@
+export { ComponentGenerator } from './ComponentGenerator';

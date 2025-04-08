@@ -1,0 +1,19 @@
+.header {
+  background: var(--header-background);
+  height: auto !important;
+  padding: 0.5rem 1rem 0.5rem 1rem;
+  position: relative !important;
+}
+
+.companyName {
+  color: #dfdede;
+  font-size: 1.14286rem;
+  font-weight: 400;
+  margin-right: 0.5rem;
+}
+
+.productName {
+  color: #ffffff;
+  font-size: 1.14286rem;
+  font-weight: 800;
+}

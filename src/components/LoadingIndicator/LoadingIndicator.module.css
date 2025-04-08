@@ -1,0 +1,46 @@
+.loadingIndicator {
+  --indicator-color: #5b4aac;
+  
+  display: inline-block;
+  margin: 1rem;
+}
+
+.nest1 {
+  border: 2px solid transparent;
+  border-radius: 50%;
+  border-top-color: var(--indicator-color);
+  display: block;
+  height: 50px;
+  width: 50px;
+  animation: spin 1.5s ease infinite;
+}
+
+.nest1::before,
+.nest1::after {
+  border: 2px solid transparent;
+  border-radius: 50%;
+  border-top-color: var(--indicator-color);
+  content: "";
+  position: absolute;
+}
+
+.nest1::before {
+  top: 7px;
+  right: 7px;
+  bottom: 7px;
+  left: 7px;
+  animation: spin 3s linear infinite;
+}
+
+.nest1::after {
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  animation: spin 1.5s ease infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(359deg); }
+}

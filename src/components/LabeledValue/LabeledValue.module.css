@@ -1,0 +1,18 @@
+.label {
+  font-size: .9rem;
+  font-weight: bold;
+  color: #555;
+}
+
+.formControl {
+  display: block;
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #222;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: var(--bs-body-bg);
+}

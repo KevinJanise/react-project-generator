@@ -1,0 +1,22 @@
+.pageSection {
+  position: relative;
+}
+
+.title {
+  color: #32302e;
+  color: #280077;
+  color: #555;
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.content {
+  background: #ffffff;
+  border-radius: 7px;
+  border: 1px solid #dfdede;
+  color: #32302e;
+  padding: 1rem 0.5rem 1rem .5rem;
+  padding: .5rem .25rem .5rem .25rem;
+}
