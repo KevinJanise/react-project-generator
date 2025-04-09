@@ -3,9 +3,11 @@ import styles from "./MenuBar.module.css";
 import { Link } from "react-router";
 
 // have variant, bar, vertical, hamburger
-function MenuBar({ children, className = "", style = {} }) {
+function MenuBar({ children, className = "", style = {}, ...rest }) {
+  const combinedClassName = `${styles.menuBar} ${className}`;
+
   return (
-    <nav className={`${styles.menuBar} ${className}`} style={style}>
+    <nav className={combinedClassName} style={style} {...rest}>
       <div>
         <Link to="/home" className={`${styles.menuItem} underlineFromCenter`}>
           Home
@@ -13,6 +15,10 @@ function MenuBar({ children, className = "", style = {} }) {
 
         <Link to="/componentGenerator" className={`${styles.menuItem} underlineFromCenter`}>
           Generate Component
+        </Link>
+
+        <Link to="/pageGenerator" className={`${styles.menuItem} underlineFromCenter`}>
+          Generate Page
         </Link>
       </div>
     </nav>

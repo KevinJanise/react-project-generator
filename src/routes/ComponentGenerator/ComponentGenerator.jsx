@@ -46,13 +46,12 @@ function ComponentGenerator({
     // let componentName = formData.componentName;
     setComponentName(formData.componentName);
 
-//    let builder = new ComponentBuilder(componentTemplate);
-  //  let code = builder.componentName("CodeDisplay").param("name", "default value").state("message", "default").state("other").build();
+    //    let builder = new ComponentBuilder(componentTemplate);
+    //  let code = builder.componentName("CodeDisplay").param("name", "default value").state("message", "default").state("other").build();
 
     console.log("handleGenerateComponent");
 
-    let componentTemplate = `
-  import styles from "./${theComponentName}.module.css";
+    let componentTemplate = `import styles from "./${theComponentName}.module.css";
 
   import { Link } from "react-router";
 
@@ -128,14 +127,16 @@ function ComponentGenerator({
             </Row>
             <Row>
               <Column width="50%">
-              <p>Will child components be passed to this component. For example:</p>
-              <pre>
-              <code>
-              &lt;MyComponent&gt;
-              &lt;p&gt;Here is a child component&lt;/p&gt;
-                  &lt;/MyComponent&gt;
-              </code>
-              </pre>
+                <p>
+                  Will child components be passed to this component. For
+                  example:
+                </p>
+                <pre>
+                  <code>
+                    &lt;MyComponent&gt; &lt;p&gt;Here is a child
+                    component&lt;/p&gt; &lt;/MyComponent&gt;
+                  </code>
+                </pre>
               </Column>
             </Row>
           </Grid>
@@ -163,21 +164,32 @@ function ComponentGenerator({
         </form>
       </PageSection>
 
-      {componentCode && <PageSection title={`Code for ${componentName} Component`}>
+      {componentCode && (
+        <PageSection title={`Code for ${componentName} Component`}>
+          <img
+            src={iconZip}
+            className={styles.zipIcon}
+            alt="Download .zip file"
+          />
 
-        <p>Folder: {`src/components/${componentName}/`}</p>
+          <CodeDisplay
+            title={`src/components/${componentName}/${componentName}.jsx`}
+            sourceCode={componentCode}
+          />
 
-              <img src={iconZip} className={styles.zipIcon} alt="Download .zip file" />
+          <CodeDisplay
+            title={`src/components/${componentName}/index.js`}
+            sourceCode={`export { ${componentName} } from './${componentName}';`}
+          />
 
-
-      <CodeDisplay title={`${componentName}.jsx`} sourceCode={componentCode} />
-
-      <CodeDisplay title="index.js" sourceCode={`export { ${componentName} } from './${componentName}';`} />
-
-      <CodeDisplay title={`${componentName}.module.css`} sourceCode={`.${FormatUtils.toLowerFirstLetter(componentName)}\n  {\n     /* add CSS */ \n  }`} />
-
-      </PageSection>
-}
+          <CodeDisplay
+            title={`src/components/${componentName}/${componentName}.module.css`}
+            sourceCode={`.${FormatUtils.toLowerFirstLetter(
+              componentName
+            )}\n  {\n     /* add CSS */ \n  }`}
+          />
+        </PageSection>
+      )}
     </div>
   );
 }
