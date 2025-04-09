@@ -174,7 +174,7 @@ function ComponentGenerator({
 
       <CodeDisplay title="index.js" sourceCode={`export { ${componentName} } from './${componentName}';`} />
 
-      <CodeDisplay title={`${componentName}.module.css`} sourceCode={`export { ${componentName} } from './${componentName}';`} />
+      <CodeDisplay title={`${componentName}.module.css`} sourceCode={`.${FormatUtils.toLowerFirstLetter(componentName)}\n  {\n     /* add CSS */ \n  }`} />
 
       </PageSection>
 }
