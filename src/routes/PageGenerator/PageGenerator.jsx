@@ -34,6 +34,7 @@ function PageGenerator({
     hasPathParameter: false,
     pathParameterName: "",
     commandName: "",
+    commandPropertyName: ""
   };
   const { formData, resetForm, handleChange, setFormData, trimValue } =
     useForm(initialFormState);
@@ -69,7 +70,7 @@ function PageGenerator({
     return theCode;
   };
 
-  const generateUseEffect = (commandName, paramName) => {
+  const generateUseEffect = (commandName, paramName, commandPropertyName) => {
     let commandVar = FormatUtils.toLowerFirstLetter(commandName);
 
     let theCode = `
@@ -82,7 +83,7 @@ function PageGenerator({
       if (result.isCanceled) return;
 
       if (result.isSuccess) {
-        setOrderDetail(result.value);
+        set${FormatUtils.toUpperFirstLetter(commandPropertyName)}(result.value);
         console.log(result);
       } else {
         setStatusMessage("Error finding order: " + orderNumber);
@@ -101,10 +102,11 @@ function PageGenerator({
     thePageName,
     thePageTitle,
     thePathParameterName,
-    commandName
+    commandName,
+    theCommandPropertyName
   ) => {
     console.log("handleGeneratePage");
-    let useEffectCode = generateUseEffect(commandName, thePathParameterName);
+    let useEffectCode = generateUseEffect(commandName, thePathParameterName, theCommandPropertyName);
 
     let componentTemplate = `import styles from "./${thePageName}.module.css";
 
@@ -116,11 +118,15 @@ function PageGenerator({
   import { PageSection } from "components/PageSection";
   import { PageTitle } from "components/PageTitle";
 
+  import { useCommand } from "hooks/useCommand";
+
   import { ${commandName} } from "services/${commandName}";
 
   function ${thePageName}({ children, onStatusUpdate, propertyName = "default value", className = "", style = {}, ...rest }) {
 
   const {${thePathParameterName}} = useParams();  // get ${thePathParameterName} from URL
+  const { execute, isExecuting, cancel } = useCommand();
+  const [${theCommandPropertyName}, set${FormatUtils.toUpperFirstLetter(theCommandPropertyName)}] = useState(null);
 
   const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
     thePageName
@@ -183,7 +189,8 @@ function PageGenerator({
         formData.pageName,
         formData.pageTitle,
         formData.pathParameterName,
-        formData.commandName
+        formData.commandName,
+        formData.commandPropertyName
       )
     );
   };
@@ -201,10 +208,7 @@ function PageGenerator({
 
       <PageSection>
         <form onSubmit={handleGeneratePage}>
-          <PageSection
-            title="Basic Info"
-            style={{ margin: "1rem"}}
-          >
+          <PageSection title="Basic Info" style={{ margin: "1rem" }}>
             <Grid>
               <Row>
                 <Column width="25%">
@@ -236,94 +240,105 @@ function PageGenerator({
             </Grid>
           </PageSection>
 
-          <PageSection
-            title="Page Initialization"
-            style={{ margin: "1rem"}}
-          >
+          <PageSection title="Page Initialization" style={{ margin: "1rem" }}>
+            <Grid>
+              <Row>
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
+                >
+                  <input
+                    className={styles.checkbox}
+                    id="hasPathParameter"
+                    type="checkbox"
+                    onChange={handleChange}
+                    name="hasPathParameter"
+                    checked={formData.hasPathParameter}
+                  />
+                  <label htmlFor="hasPathParameter">
+                    Initialize page using path parameter
+                  </label>
+                </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Path Parameter Name"
+                    name="pathParameterName"
+                    onBlur={trimValue}
+                    placeholder=""
+                    onChange={handleChange}
+                    value={formData.pathParameterName}
+                    type="text"
+                    errorMessage={getErrorMessage("pathParameterName")}
+                  />
+                </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Command Name"
+                    name="commandName"
+                    onBlur={trimValue}
+                    placeholder=""
+                    onChange={handleChange}
+                    value={formData.commandName}
+                    type="text"
+                    errorMessage={getErrorMessage("commandName")}
+                  />
+                </Column>
+              </Row>
+
+              <Row>
+              <Column width="25%">
+                  <LabeledTextInput
+                    label="Property name to hold Command result"
+                    name="commandPropertyName"
+                    onBlur={trimValue}
+                    placeholder=""
+                    onChange={handleChange}
+                    value={formData.commandPropertyName}
+                    type="text"
+                    errorMessage={getErrorMessage("commandPropertyName")}
+                  />
+                </Column>
+
+              </Row>
+
+              <Row>
+                <Column width="50%">
+                  <p>
+                    Will child components be passed to this component. For
+                    example:
+                  </p>
+                  <pre>
+                    <code>
+                      &lt;MyComponent&gt; &lt;p&gt;Here is a child
+                      component&lt;/p&gt; &lt;/MyComponent&gt;
+                    </code>
+                  </pre>
+                </Column>
+              </Row>
+            </Grid>
+          </PageSection>
           <Grid>
             <Row>
-              <Column width="25%" valign="center" style={{paddingTop: "2rem"}}>
-                <input
-                  className={styles.checkbox}
-                  id="hasPathParameter"
-                  type="checkbox"
-                  onChange={handleChange}
-                  name="hasPathParameter"
-                  checked={formData.hasPathParameter}
-                />
-                <label htmlFor="hasPathParameter">
-                  Initialize page using path parameter
-                </label>
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Path Parameter Name"
-                  name="pathParameterName"
-                  onBlur={trimValue}
-                  placeholder=""
-                  onChange={handleChange}
-                  value={formData.pathParameterName}
-                  type="text"
-                  errorMessage={getErrorMessage("pathParameterName")}
-                />
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Command Name"
-                  name="commandName"
-                  onBlur={trimValue}
-                  placeholder=""
-                  onChange={handleChange}
-                  value={formData.commandName}
-                  type="text"
-                  errorMessage={getErrorMessage("commandName")}
-                />
-              </Column>
+              <Column width="auto" align="left">
+                <button
+                  className="button"
+                  type="submit"
+                  style={{ marginRight: "1rem" }}
+                >
+                  Generate Page
+                </button>
 
-            </Row>
-
-            <Row>
-            </Row>
-
-            <Row>
-              <Column width="50%">
-                <p>
-                  Will child components be passed to this component. For
-                  example:
-                </p>
-                <pre>
-                  <code>
-                    &lt;MyComponent&gt; &lt;p&gt;Here is a child
-                    component&lt;/p&gt; &lt;/MyComponent&gt;
-                  </code>
-                </pre>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={handleClear}
+                  style={{ marginRight: "1rem" }}
+                >
+                  Clear
+                </button>
               </Column>
             </Row>
-          </Grid>
-
-</PageSection>
-          <Grid>
-
-          <Row>
-            <Column width="auto" align="left">
-              <button
-                className="button"
-                type="submit"
-                style={{ marginRight: "1rem" }}
-              >
-                Generate Page
-              </button>
-
-              <button
-                className="button"
-                type="button"
-                onClick={handleClear}
-                style={{ marginRight: "1rem" }}
-              >
-                Clear
-              </button>
-            </Column>
-          </Row>
           </Grid>
         </form>
       </PageSection>

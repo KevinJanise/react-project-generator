@@ -27,3 +27,10 @@ export function toLowerFirstLetter(str) {
   }
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
+
+export function toUpperFirstLetter(str) {
+  if (!str) {
+    return ""; // Handle empty or null strings
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
