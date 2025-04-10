@@ -24,11 +24,17 @@ function PageGenerator({
   ...rest
 }) {
   const [pageName, setComponentName] = useState("");
-  const [componentCode, setComponentCode] = useState("");
+  const [pageCode, setPageCode] = useState("");
   const [routerCode, setRouterCode] = useState("");
   const [menuBarCode, setMenuBarCode] = useState("");
 
-  let initialFormState = { pageName: "", pageTitle: "Default Title" };
+  let initialFormState = {
+    pageName: "",
+    pageTitle: "",
+    hasPathParameter: false,
+    pathParameterName: "",
+    commandName: "",
+  };
   const { formData, resetForm, handleChange, setFormData, trimValue } =
     useForm(initialFormState);
 
@@ -49,51 +55,84 @@ function PageGenerator({
     return theCode;
   };
 
-  const generateRouterCode = (thePageName) => {
+  const generateRouterCode = (thePageName, thePathParameterName) => {
+    let pathParameter = thePathParameterName ? `/:${thePathParameterName}` : "";
+    let path = `path="/${FormatUtils.toLowerFirstLetter(
+      thePageName
+    )}${pathParameter}"`;
+
     let theCode = `import {${thePageName}} from "routes/${thePageName}";
     ...
-  <Route exact path="/${FormatUtils.toLowerFirstLetter(
-    thePageName
-  )}" element={<${thePageName} />} />
+  <Route exact ${path} element={<${thePageName} />} />
     `;
+
     return theCode;
   };
 
-  const handleGeneratePage = (event) => {
-    event.preventDefault();
+  const generateUseEffect = (commandName, paramName) => {
+    let commandVar = FormatUtils.toLowerFirstLetter(commandName);
 
-    let thePageName = formData.pageName;
-    let thePageTitle = formData.pageTitle;
+    let theCode = `
+ useEffect(() => {
+    async function init() {
+      const ${commandVar} = new ${commandName}(${paramName});
+      let result = await execute(${commandVar});
+      console.log(result);
 
-    setRouterCode(generateRouterCode(formData.pageName));
-    setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
+      if (result.isCanceled) return;
 
-    // let pageName = formData.pageName;
-    setComponentName(formData.pageName);
+      if (result.isSuccess) {
+        setOrderDetail(result.value);
+        console.log(result);
+      } else {
+        setStatusMessage("Error finding order: " + orderNumber);
+        console.log(result.error);
+      }
+    }
 
-    //    let builder = new ComponentBuilder(componentTemplate);
-    //  let code = builder.pageName("CodeDisplay").param("name", "default value").state("message", "default").state("other").build();
+    init();
+  }, [execute, ${paramName}]);
+    `;
 
+    return theCode;
+  };
+
+  const generatePageCode = (
+    thePageName,
+    thePageTitle,
+    thePathParameterName,
+    commandName
+  ) => {
     console.log("handleGeneratePage");
+    let useEffectCode = generateUseEffect(commandName, thePathParameterName);
 
     let componentTemplate = `import styles from "./${thePageName}.module.css";
 
-  import { Link } from "react-router";
-  
+  import { useEffect, useState } from "react";
+
+  import { Link, useParams } from "react-router";
+
   import { Grid, Row, Column } from "components/Grid";
   import { PageSection } from "components/PageSection";
   import { PageTitle } from "components/PageTitle";
 
+  import { ${commandName} } from "services/${commandName}";
+
   function ${thePageName}({ children, onStatusUpdate, propertyName = "default value", className = "", style = {}, ...rest }) {
-    const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
-      thePageName
-    )}} \${className}\`;
+
+  const {${thePathParameterName}} = useParams();  // get ${thePathParameterName} from URL
+
+  const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
+    thePageName
+  )}} \${className}\`;
 
     const handleStatusUpdate = () => {
         let status = "some value";
 
         onStatusUpdate(status);
     };
+
+    ${useEffectCode}
 
     return (
       <div className={combinedClassName} style={style} {...rest}>
@@ -127,22 +166,31 @@ function PageGenerator({
   export { ${thePageName} };
       `;
 
-    setComponentCode(componentTemplate);
+    return componentTemplate;
+  };
 
-    console.log(`${thePageName}.jsx`);
-    console.log(componentTemplate);
+  const handleGeneratePage = (event) => {
+    event.preventDefault();
 
-    console.log("\nindex.js");
-    console.log(`export { ${thePageName} } from './${thePageName}';`);
+    setComponentName(formData.pageName);
 
-    console.log(`\n${thePageName}.module.css`);
-    console.log(`.${FormatUtils.toLowerFirstLetter(thePageName)} {
-  }`);
+    setRouterCode(
+      generateRouterCode(formData.pageName, formData.pathParameterName)
+    );
+    setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
+    setPageCode(
+      generatePageCode(
+        formData.pageName,
+        formData.pageTitle,
+        formData.pathParameterName,
+        formData.commandName
+      )
+    );
   };
 
   const handleClear = () => {
     resetForm();
-    setComponentCode(null);
+    setPageCode(null);
   };
 
   const combinedClassName = `${styles.componentGenerator} ${className}`;
@@ -153,34 +201,90 @@ function PageGenerator({
 
       <PageSection>
         <form onSubmit={handleGeneratePage}>
+          <PageSection
+            title="Basic Info"
+            style={{ margin: "1rem"}}
+          >
+            <Grid>
+              <Row>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Page Name"
+                    name="pageName"
+                    onBlur={trimValue}
+                    placeholder=""
+                    onChange={handleChange}
+                    value={formData.pageName}
+                    type="text"
+                    errorMessage={getErrorMessage("pageName")}
+                  />
+                </Column>
+
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Page Title"
+                    name="pageTitle"
+                    onBlur={trimValue}
+                    placeholder=""
+                    onChange={handleChange}
+                    value={formData.pageTitle}
+                    type="text"
+                    errorMessage={getErrorMessage("pageTitle")}
+                  />
+                </Column>
+              </Row>
+            </Grid>
+          </PageSection>
+
+          <PageSection
+            title="Page Initialization"
+            style={{ margin: "1rem"}}
+          >
           <Grid>
             <Row>
+              <Column width="25%" valign="center" style={{paddingTop: "2rem"}}>
+                <input
+                  className={styles.checkbox}
+                  id="hasPathParameter"
+                  type="checkbox"
+                  onChange={handleChange}
+                  name="hasPathParameter"
+                  checked={formData.hasPathParameter}
+                />
+                <label htmlFor="hasPathParameter">
+                  Initialize page using path parameter
+                </label>
+              </Column>
               <Column width="25%">
                 <LabeledTextInput
-                  label="Page Name"
-                  name="pageName"
+                  label="Path Parameter Name"
+                  name="pathParameterName"
                   onBlur={trimValue}
                   placeholder=""
                   onChange={handleChange}
-                  value={formData.pageName}
+                  value={formData.pathParameterName}
                   type="text"
-                  errorMessage={getErrorMessage("pageName")}
+                  errorMessage={getErrorMessage("pathParameterName")}
+                />
+              </Column>
+              <Column width="25%">
+                <LabeledTextInput
+                  label="Command Name"
+                  name="commandName"
+                  onBlur={trimValue}
+                  placeholder=""
+                  onChange={handleChange}
+                  value={formData.commandName}
+                  type="text"
+                  errorMessage={getErrorMessage("commandName")}
                 />
               </Column>
 
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Page Title"
-                  name="pageTitle"
-                  onBlur={trimValue}
-                  placeholder=""
-                  onChange={handleChange}
-                  value={formData.pageTitle}
-                  type="text"
-                  errorMessage={getErrorMessage("pageTitle")}
-                />
-              </Column>
             </Row>
+
+            <Row>
+            </Row>
+
             <Row>
               <Column width="50%">
                 <p>
@@ -197,6 +301,9 @@ function PageGenerator({
             </Row>
           </Grid>
 
+</PageSection>
+          <Grid>
+
           <Row>
             <Column width="auto" align="left">
               <button
@@ -204,7 +311,7 @@ function PageGenerator({
                 type="submit"
                 style={{ marginRight: "1rem" }}
               >
-                Generate Component
+                Generate Page
               </button>
 
               <button
@@ -217,10 +324,11 @@ function PageGenerator({
               </button>
             </Column>
           </Row>
+          </Grid>
         </form>
       </PageSection>
 
-      {componentCode && (
+      {pageCode && (
         <PageSection title={`Code for ${pageName} Component`}>
           <img
             src={iconZip}
@@ -237,7 +345,7 @@ function PageGenerator({
 
           <CodeDisplay
             title={`src/routes/${pageName}/${pageName}.jsx`}
-            sourceCode={componentCode}
+            sourceCode={pageCode}
           />
 
           <CodeDisplay

@@ -15,7 +15,7 @@ const DefaultFooter = () => (
       </a>
     </div>
 
-    <span className={styles.copyright}>&copy; {new Date().getFullYear()} Xynovation Inc.</span>
+    <span className={styles.copyright}>&copy; {new Date().getFullYear()} Enlyte Group, LLC.</span>
   </footer>
 );
 

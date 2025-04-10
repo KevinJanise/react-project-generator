@@ -1,12 +1,17 @@
 .pageGenerator {
-     /* add CSS */ 
+  /* add CSS */
 }
 
-  .zipIcon {
-    width: 24px;
-    height: 24px;
-    position: relative;
-    top: .4rem;
-    left: 1rem;
-  }
-  
+.zipIcon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  top: 0.4rem;
+  left: 1rem;
+}
+
+.checkbox {
+  xposition: relative;
+  xtop: 0.4rem;
+  margin-right: 0.5rem;
+}
