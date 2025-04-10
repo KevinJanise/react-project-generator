@@ -1,28 +1,28 @@
 :root {
-  --borderRadius: .5rem;
+  --borderRadius: 0.5rem;
 }
 
 .copyIcon {
-    width: 24px;
-    height: 24px;
-    position: relative;
-    top: .4rem;
-    left: 1rem;
-    cursor:pointer;
+  width: 24px;
+  height: 24px;
+  position: relative;
+  top: 0.4rem;
+  left: 1rem;
+  cursor: pointer;
 }
 
 .zipIcon {
   width: 24px;
   height: 24px;
   position: relative;
-  top: .4rem;
+  top: 0.4rem;
   left: 1rem;
 }
 
 .codeDisplay {
-    border: 1px solid #d4d4d4;
-    margin: 1rem;
-    border-radius: var(--borderRadius);
+  border: 1px solid #d4d4d4;
+  margin: 1rem;
+  border-radius: var(--borderRadius);
 }
 
 .title {
@@ -37,4 +37,10 @@
 
 .code {
   margin: 1rem;
+}
+
+.checkMark {
+  font-size: 1.25rem;
+  margin-right: 1.25rem;
+  color: green;
 }
