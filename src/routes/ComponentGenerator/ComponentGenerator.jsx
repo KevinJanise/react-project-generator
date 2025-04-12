@@ -24,9 +24,14 @@ function ComponentGenerator({
   ...rest
 }) {
   const [componentName, setComponentName] = useState("");
-  const [componentCode, setComponentCode] = useState("");
+  const [component, setComponent] = useState();
 
-  let initialFormState = { componentName: "" };
+  let initialFormState = {
+    componentName: "",
+    hasChildComponents: false,
+    parameterNames: "",
+    callbackFunctions: ""
+  };
   const { formData, resetForm, handleChange, setFormData, trimValue } =
     useForm(initialFormState);
 
@@ -38,71 +43,132 @@ function ComponentGenerator({
     setFocusOnFirstError,
   } = useErrorMessages();
 
-  const handleGenerateComponent = (event) => {
-    event.preventDefault();
+  // Have an assembler who knows where the different pieces go
+  const assemble = (indexFile, componentFile, cssFile) => {
+    let componentParts = { indexFile, componentFile, cssFile };
 
-    let theComponentName = formData.componentName;
+    console.log(componentParts);
 
-    // let componentName = formData.componentName;
-    setComponentName(formData.componentName);
+    setComponent(componentParts);
+  };
 
-    //    let builder = new ComponentBuilder(componentTemplate);
-    //  let code = builder.componentName("CodeDisplay").param("name", "default value").state("message", "default").state("other").build();
+  const generateIndexFile = (componentName) => ({
+    directory: componentName,
+    fileName: "index.js",
+    content: `export { ${componentName} } from './${componentName}';`,
+  });
 
-    console.log("handleGenerateComponent");
+  const generateParameterList = (hasChildComponents, parameterNames, callbackFunctions = "") => {
+    const baseParams = ['className = ""', 'style = {}', '...rest'];
+    const allParams = [];
 
-    let componentTemplate = `import styles from "./${theComponentName}.module.css";
+    if (hasChildComponents) allParams.push("children");
+    if (parameterNames) allParams.push(parameterNames);
+    if (callbackFunctions) {
+      allParams.push(...callbackFunctions.split(",").map(s => s.trim()));
+    }
 
+    return [...allParams, ...baseParams].join(", ");
+  };
+
+  const generateCallbackHandlers = (callbackFunctions = "") => {
+    if (!callbackFunctions) return "";
+
+    return callbackFunctions
+      .split(",")
+      .map(fn => fn.trim())
+      .filter(fn => fn) // remove empty entries
+      .map(fn => {
+        const handlerName = `handle${fn.charAt(0).toUpperCase()}${fn.slice(1)}`;
+        return `
+    const ${handlerName} = (...args) => {
+      if (typeof ${fn} === "function") {
+        ${fn}(...args);
+      }
+    };`;
+      })
+      .join("\n");
+  };
+
+  const generateComponentFile = (
+    componentName,
+    hasChildComponents,
+    parameterNames,
+    callbackFunctions = ""
+  ) => {
+    const parameterList = generateParameterList(hasChildComponents, parameterNames, callbackFunctions);
+    const className = FormatUtils.toLowerFirstLetter(componentName);
+    const directory = componentName;
+    const fileName = `${componentName}.jsx`;
+
+    const childrenBlock = hasChildComponents ? `\n      {children}` : "";
+    const callbackHandlers = generateCallbackHandlers(callbackFunctions);
+
+    const sourceCode = `import styles from "./${componentName}.module.css";
   import { Link } from "react-router";
 
-  function ${theComponentName}({ children, onStatusUpdate, propertyName = "default value", className = "", style = {}, ...rest }) {
-    const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
-      theComponentName
-    )}} \${className}\`;
+  function ${componentName}({ ${parameterList} }) {
+    const combinedClassName = \`\${styles.${className}} \${className}\`;
 
-    const handleStatusUpdate = () => {
-        let status = "some value";
-
-        onStatusUpdate(status);
-    };
+    ${callbackHandlers}
 
     return (
       <div className={combinedClassName} style={style} {...rest}>
-         {/* Implement component */}
-         {/*
-           Do something with
-           the property
-         */}
-
-          {children}
+        {/* Implement component */}
+        {/* Do something with the property */}${childrenBlock}
       </div>
     );
   }
 
-  export { ${theComponentName} };
-      `;
+  export { ${componentName} };
+  `;
 
-    setComponentCode(componentTemplate);
+    return { directory, fileName, content: sourceCode };
+  };
 
-    console.log(`${theComponentName}.jsx`);
-    console.log(componentTemplate);
+  const generateCssFile = (componentName) => {
+    const className = FormatUtils.toLowerFirstLetter(componentName);
 
-    console.log("\nindex.js");
-    console.log(`export { ${theComponentName} } from './${theComponentName}';`);
+    return {
+      directory: componentName,
+      fileName: `${componentName}.module.css`,
+      content: `.${className} {\n    /* add CSS */\n  }`,
+    };
+  };
 
-    console.log(`\n${theComponentName}.module.css`);
-    console.log(`.${FormatUtils.toLowerFirstLetter(theComponentName)} {
-  }`);
+  const generateComponentPieces = (
+    componentName,
+    hasChildComponents,
+    parameterNames, callbackFunctions
+  ) => {
+    let indexFile = generateIndexFile(componentName);
+    let componentFile = generateComponentFile(
+      componentName,
+      hasChildComponents,
+      parameterNames, callbackFunctions
+    );
+    let cssFile = generateCssFile(componentName);
+
+    assemble(indexFile, componentFile, cssFile);
+  };
+
+  const handleGenerateComponent = (event) => {
+    event.preventDefault();
+
+    let componentName = formData.componentName;
+    let hasChildComponents = formData.hasChildComponents;
+    let parameterNames = formData.parameterNames;
+    let callbackFunctions = formData.callbackFunctions;
+
+    generateComponentPieces(componentName, hasChildComponents, parameterNames, callbackFunctions);
   };
 
   const handleClear = () => {
     resetForm();
-    setComponentCode(null);
+    setComponent(null);
   };
 
   const combinedClassName = `${styles.componentGenerator} ${className}`;
-
-  // <CodeDisplay title={componentName} code={} />
 
   return (
     <div className={combinedClassName} style={style} {...rest}>
@@ -124,29 +190,60 @@ function ComponentGenerator({
                   errorMessage={getErrorMessage("componentName")}
                 />
               </Column>
+              <Column width="25%">
+                <LabeledTextInput
+                  label="Parameter Names"
+                  name="parameterNames"
+                  onBlur={trimValue}
+                  placeholder=""
+                  onChange={handleChange}
+                  value={formData.parameterNames}
+                  type="text"
+                  errorMessage={getErrorMessage("parameterNames")}
+                />
+              </Column>
+              <Column width="25%">
+                <LabeledTextInput
+                  label={`Callback Functions ("on???")`}
+                  name="callbackFunctions"
+                  onBlur={trimValue}
+                  placeholder=""
+                  onChange={handleChange}
+                  value={formData.callbackFunctions}
+                  type="text"
+                  errorMessage={getErrorMessage("callbackFunctions")}
+                />
+              </Column>
             </Row>
             <Row>
-              <Column width="50%">
-                <p>
-                  Will child components be passed to this component. For
-                  example:
-                </p>
-                <pre>
-                  <code>
-                    &lt;MyComponent&gt; &lt;p&gt;Here is a child
-                    component&lt;/p&gt; &lt;/MyComponent&gt;
-                  </code>
-                </pre>
+              <Column
+                width="50%"
+                valign="center"
+                style={{ paddingTop: "2rem" }}
+              >
+                <div>
+                  <input
+                    className={styles.checkbox}
+                    id="hasChildComponents"
+                    type="checkbox"
+                    onChange={handleChange}
+                    name="hasChildComponents"
+                    checked={formData.hasChildComponents}
+                  />
+                  <label htmlFor="hasChildComponents">
+                    Can have child components
+                  </label>
+                </div>
               </Column>
             </Row>
           </Grid>
 
           <Row>
-            <Column width="auto" align="left">
+            <Column width="50%" align="left">
               <button
                 className="button"
                 type="submit"
-                style={{ marginRight: "1rem" }}
+                style={{ marginRight: "1rem", width: "auto" }}
               >
                 Generate Component
               </button>
@@ -155,7 +252,7 @@ function ComponentGenerator({
                 className="button"
                 type="button"
                 onClick={handleClear}
-                style={{ marginRight: "1rem" }}
+                style={{ marginRight: "1rem", width: "auto" }}
               >
                 Clear
               </button>
@@ -164,29 +261,30 @@ function ComponentGenerator({
         </form>
       </PageSection>
 
-      {componentCode && (
+      {component && (
         <PageSection title={`Code for ${componentName} Component`}>
-          <img
-            src={iconZip}
-            className={styles.zipIcon}
-            alt="Download .zip file"
+          <span style={{ marginLeft: "1rem" }}>
+            Download all files in one zip file. Unzip in /src/components{" "}
+            <img
+              src={iconZip}
+              className={styles.zipIcon}
+              alt="Download .zip file"
+            />
+          </span>
+
+          <CodeDisplay
+            title={`src/components/${component.indexFile.directory}/${component.indexFile.fileName}`}
+            sourceCode={component.indexFile.content}
           />
 
           <CodeDisplay
-            title={`src/components/${componentName}/${componentName}.jsx`}
-            sourceCode={componentCode}
+            title={`src/components/${component.cssFile.directory}/${component.cssFile.fileName}`}
+            sourceCode={component.cssFile.content}
           />
 
           <CodeDisplay
-            title={`src/components/${componentName}/index.js`}
-            sourceCode={`export { ${componentName} } from './${componentName}';`}
-          />
-
-          <CodeDisplay
-            title={`src/components/${componentName}/${componentName}.module.css`}
-            sourceCode={`.${FormatUtils.toLowerFirstLetter(
-              componentName
-            )}\n  {\n     /* add CSS */ \n  }`}
+            title={`src/components/${component.componentFile.directory}/${component.componentFile.fileName}`}
+            sourceCode={component.componentFile.content}
           />
         </PageSection>
       )}
