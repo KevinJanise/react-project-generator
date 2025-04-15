@@ -170,3 +170,54 @@ export function parseUrl(url) {
 
   return path;
 }
+
+
+/**
+ * Parses a string of parameter names (separated by spaces and/or commas)
+ * into an array of normalized, valid JavaScript identifiers.
+ *
+ * - Trims whitespace around entries.
+ * - Supports both comma and space as separators.
+ * - Normalizes each name to start with a lowercase letter (unless it begins with `_` or `$`).
+ * - Validates that each resulting name is a legal JavaScript identifier.
+ * - Throws an error if any invalid identifiers are found, listing all of them.
+ *
+ * @param {string} input - A string containing parameter names separated by commas or whitespace.
+ * @returns {string[]} An array of valid, normalized parameter names.
+ *
+ * @throws {Error} If any of the parameter names are not valid JavaScript identifiers.
+ *
+ * @example
+ * parseCommandList("paramOne, _Private, secondParam  $extra, 9invalid, not-valid")
+ * // Throws: Error: Invalid parameter name(s): 9invalid, not-valid
+ *
+ * @example
+ * parseCommandList("First, Second third, _internal, $dollar")
+ * // Returns: ["first", "second", "third", "_internal", "$dollar"]
+ */
+export function parseCommandList(input) {
+  const isValidIdentifier = str => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(str);
+
+  const rawItems = input
+    .split(/[\s,]+/)
+    .map(str => str.trim())
+    .filter(Boolean);
+
+  const normalized = rawItems.map(str => {
+    if (str.startsWith('_')) {
+      return '_' + (str[1] ? str[1].toLowerCase() + str.slice(2) : '');
+    }
+    if (str.startsWith('$')) {
+      return '$' + (str[1] ? str[1].toLowerCase() + str.slice(2) : '');
+    }
+    return str[0].toLowerCase() + str.slice(1);
+  });
+
+  const invalid = normalized.filter(str => !isValidIdentifier(str));
+
+  if (invalid.length > 0) {
+    throw new Error(`Invalid parameter name(s): ${invalid.join(', ')}`);
+  }
+
+  return normalized;
+}

@@ -34,3 +34,10 @@ export function toUpperFirstLetter(str) {
   }
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+export function toKebabCase(name) {
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1-$2') // insert dash between camelCase transitions
+    .replace(/[\s_]+/g, '-')             // replace spaces/underscores with dash
+    .toLowerCase();                      // convert to lowercase
+}

@@ -16,6 +16,7 @@
   position: relative;
   top: .4rem;
   left: 1rem;
+  cursor: pointer;
 }
 
 .checkbox {

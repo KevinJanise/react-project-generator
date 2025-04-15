@@ -1,4 +1,10 @@
+// https://airbnb.io/javascript/react/
+
+
 import styles from "./ComponentGenerator.module.css";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+
 import iconZip from "./icon_zip.svg";
 
 import { useState, useCallback } from "react";
@@ -10,6 +16,9 @@ import { CodeDisplay } from "components/CodeDisplay";
 
 import { useForm } from "hooks/useForm";
 import { useErrorMessages } from "hooks/useErrorMessages";
+
+import * as Utils from "utils/Utils";
+
 import {
   generateComponentFile,
   generateCssFile,
@@ -24,9 +33,15 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     hasChildComponents: false,
     parameterNames: "",
     callbackFunctions: "",
+    doInitialization: false,
+    commandName: "",
+    paramsToCommand: "",
+    stateVariable: "",
+    showLoading: false,
   };
 
-  const { formData, resetForm, handleChange, trimValue } = useForm(initialFormState);
+  const { formData, resetForm, handleChange, trimValue } =
+    useForm(initialFormState);
   const { getErrorMessage } = useErrorMessages();
 
   const {
@@ -34,15 +49,36 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     hasChildComponents,
     parameterNames,
     callbackFunctions,
+    doInitialization,
+    commandName,
+    stateVariable,
+    showLoading
   } = formData;
 
-  const generateComponentPieces = useCallback(() => {
+  let useEffectConfig = {
+    commandName: commandName,
+    paramNames: Utils.parseCommandList("userId isActive"),
+    stateVar: stateVariable
+  };
+
+  const generateComponentPieces = () => {
     const indexFile = generateIndexFile(componentName);
-    const componentFile = generateComponentFile(componentName, hasChildComponents, parameterNames, callbackFunctions);
+
+    // put these in a javascript object and be able to turn into JSON and save and parse again later on
+    const componentFile = generateComponentFile(
+      componentName,
+      hasChildComponents,
+      parameterNames,
+      callbackFunctions,
+      useEffectConfig,
+      stateVariable,
+      showLoading
+    );
+
     const cssFile = generateCssFile(componentName);
 
     setComponent({ indexFile, componentFile, cssFile });
-  }, [componentName, hasChildComponents, parameterNames, callbackFunctions]);
+  };
 
   const handleGenerateComponent = (event) => {
     event.preventDefault();
@@ -52,6 +88,37 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
   const handleClear = () => {
     resetForm();
     setComponent(null);
+  };
+
+  // Remove useCallback if no heavy re-renders or optimization needed
+  // let zipContent = [{directory, fileContent}, {directory, fileContent}]
+  // handleDownloadZip(zipContent);
+  const handleDownloadZip = () => {
+    if (!component || !componentName) return;
+
+    const zip = new JSZip();
+
+    // Add all component files inside a single directory (component name)
+    const componentDir = componentName; // This will create a folder named "EditNote"
+
+    // Add the files (index.js, component.jsx, and .module.css) inside this directory
+    zip.file(
+      `${componentDir}/${component.indexFile.fileName}`,
+      component.indexFile.content
+    );
+    zip.file(
+      `${componentDir}/${component.componentFile.fileName}`,
+      component.componentFile.content
+    );
+    zip.file(
+      `${componentDir}/${component.cssFile.fileName}`,
+      component.cssFile.content
+    );
+
+    // Generate the zip file and trigger download
+    zip.generateAsync({ type: "blob" }).then((blob) => {
+      saveAs(blob, `${componentName}.zip`);
+    });
   };
 
   const combinedClassName = `${styles.componentGenerator} ${className}`;
@@ -95,7 +162,11 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
               </Column>
             </Row>
             <Row>
-              <Column width="50%" valign="center" style={{ paddingTop: "2rem" }}>
+              <Column
+                width="50%"
+                valign="center"
+                style={{ paddingTop: "2rem" }}
+              >
                 <label>
                   <input
                     className={styles.checkbox}
@@ -108,9 +179,71 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                 </label>
               </Column>
             </Row>
+
+            <Row>
+              <Column
+                width="25%"
+                valign="center"
+                style={{ paddingTop: "2rem" }}
+              >
+                <label>
+                  <input
+                    className={styles.checkbox}
+                    type="checkbox"
+                    name="doInitialization"
+                    checked={doInitialization}
+                    onChange={handleChange}
+                  />
+                  Do Initialization
+                </label>
+              </Column>
+              <Column width="25%">
+                <LabeledTextInput
+                  label='Command Name'
+                  name="commandName"
+                  onBlur={trimValue}
+                  onChange={handleChange}
+                  value={commandName}
+                  errorMessage={getErrorMessage("commandName")}
+                />
+              </Column>
+              <Column width="25%">
+                <LabeledTextInput
+                  label='State Variable'
+                  name="stateVariable"
+                  onBlur={trimValue}
+                  onChange={handleChange}
+                  value={stateVariable}
+                  errorMessage={getErrorMessage("stateVariable")}
+                />
+              </Column>
+
+              <Column
+                width="25%"
+                valign="center"
+                style={{ paddingTop: "2rem" }}
+              >
+                <label>
+                  <input
+                    className={styles.checkbox}
+                    type="checkbox"
+                    name="showLoading"
+                    checked={showLoading}
+                    onChange={handleChange}
+                  />
+                  Show Loading
+                </label>
+              </Column>
+
+            </Row>
+
             <Row>
               <Column width="50%" align="left">
-                <button type="submit" className="button" style={{ marginRight: "1rem" }}>
+                <button
+                  type="submit"
+                  className="button"
+                  style={{ marginRight: "1rem" }}
+                >
                   Generate Component
                 </button>
                 <button type="button" className="button" onClick={handleClear}>
@@ -126,7 +259,12 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
         <PageSection title={`Code for ${componentName} Component`}>
           <span style={{ marginLeft: "1rem" }}>
             Download all files in one zip file. Unzip in /src/components{" "}
-            <img src={iconZip} className={styles.zipIcon} alt="Download .zip file" />
+            <img
+              src={iconZip}
+              className={styles.zipIcon}
+              alt="Download .zip file"
+              onClick={handleDownloadZip}
+            />
           </span>
 
           {["indexFile", "cssFile", "componentFile"].map((type) => (
