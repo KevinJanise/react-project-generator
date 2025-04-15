@@ -188,14 +188,14 @@ export function parseUrl(url) {
  * @throws {Error} If any of the parameter names are not valid JavaScript identifiers.
  *
  * @example
- * parseCommandList("paramOne, _Private, secondParam  $extra, 9invalid, not-valid")
+ * parseParamList("paramOne, _Private, secondParam  $extra, 9invalid, not-valid")
  * // Throws: Error: Invalid parameter name(s): 9invalid, not-valid
  *
  * @example
- * parseCommandList("First, Second third, _internal, $dollar")
+ * parseParamList("First, Second third, _internal, $dollar")
  * // Returns: ["first", "second", "third", "_internal", "$dollar"]
  */
-export function parseCommandList(input) {
+export function parseParamList(input) {
   const isValidIdentifier = str => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(str);
 
   const rawItems = input

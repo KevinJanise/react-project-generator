@@ -60,7 +60,7 @@ const generateUseEffect = ({ commandName,  paramNames, stateVar}) => {
       if (result.isCanceled) return;
 
       if (result.isSuccess) {
-        // may need to adjust depending on return object from command
+        // may need to adjust depending on object returned from command
         set${FormatUtils.toUpperFirstLetter(stateVar)}(result.value);
         console.log(result);
       } else {

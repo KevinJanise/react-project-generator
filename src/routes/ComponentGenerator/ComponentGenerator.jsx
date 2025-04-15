@@ -1,6 +1,5 @@
 // https://airbnb.io/javascript/react/
 
-
 import styles from "./ComponentGenerator.module.css";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -35,7 +34,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     callbackFunctions: "",
     doInitialization: false,
     commandName: "",
-    paramsToCommand: "",
+    commandParams: "",
     stateVariable: "",
     showLoading: false,
   };
@@ -52,13 +51,14 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     doInitialization,
     commandName,
     stateVariable,
-    showLoading
+    showLoading,
+    commandParams,
   } = formData;
 
   let useEffectConfig = {
     commandName: commandName,
-    paramNames: Utils.parseCommandList("userId isActive"),
-    stateVar: stateVariable
+    paramNames: Utils.parseParamList(commandParams),
+    stateVar: stateVariable,
   };
 
   const generateComponentPieces = () => {
@@ -199,7 +199,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
               </Column>
               <Column width="25%">
                 <LabeledTextInput
-                  label='Command Name'
+                  label="Command Name"
                   name="commandName"
                   onBlur={trimValue}
                   onChange={handleChange}
@@ -209,7 +209,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
               </Column>
               <Column width="25%">
                 <LabeledTextInput
-                  label='State Variable'
+                  label="State Variable"
                   name="stateVariable"
                   onBlur={trimValue}
                   onChange={handleChange}
@@ -234,7 +234,19 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   Show Loading
                 </label>
               </Column>
+            </Row>
 
+            <Row>
+              <Column width="25%">
+                <LabeledTextInput
+                  label="Command Params"
+                  name="commandParams"
+                  onBlur={trimValue}
+                  onChange={handleChange}
+                  value={commandParams}
+                  errorMessage={getErrorMessage("commandParams")}
+                />
+              </Column>
             </Row>
 
             <Row>
