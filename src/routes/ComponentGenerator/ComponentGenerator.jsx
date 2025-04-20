@@ -6,7 +6,7 @@ import { saveAs } from "file-saver";
 
 import iconZip from "./icon_zip.svg";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Grid, Row, Column } from "components/Grid";
 import { LabeledTextInput } from "components/LabeledTextInput";
 import { PageSection } from "components/PageSection";
@@ -16,6 +16,16 @@ import { CodeDisplay } from "components/CodeDisplay";
 import { useForm } from "hooks/useForm";
 import { useErrorMessages } from "hooks/useErrorMessages";
 
+import { ComponentBuilder } from "./ComponentBuilder";
+
+import { ComponentBuilderGrok } from "./ComponentBuilderGrok";
+
+//import { generateComponentCode } from "./ComponentBuilderGPT";
+
+import { ComponentBuilderGPT2 } from "./ComponentBuilderGPT2";
+import { ComponentBuilderGemini } from "./ComponentBuilderGemini";
+
+
 import * as Utils from "utils/Utils";
 
 import {
@@ -23,6 +33,23 @@ import {
   generateCssFile,
   generateIndexFile,
 } from "./ComponentTemplateUtils";
+
+
+const componentConfig = {
+  component: {
+    name: "NoteDisplay",
+    parameterList: ["noteId", "userId", "userName"],
+    hasChildren: true,
+    hasUseEffect: true,
+  },
+  useEffectConfig: {
+    commandName: "FindNoteCommand",
+    commandParams: ["noteId", "userId"],
+    commandStateVar: "note",
+    showIsLoading: true,
+    stateVarIsList: true,
+  },
+};
 
 function ComponentGenerator({ className = "", style = {}, ...rest }) {
   const [component, setComponent] = useState(null);
@@ -119,6 +146,58 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     zip.generateAsync({ type: "blob" }).then((blob) => {
       saveAs(blob, `${componentName}.zip`);
     });
+  };
+
+  const doTest = () => {
+    let builder = new ComponentBuilder(componentConfig);
+    let componentFile = builder.generateComponent();
+    console.log(componentFile);
+
+    let indexFile = "";
+    let cssFile = "";
+
+    setComponent({ indexFile, componentFile, cssFile });
+  };
+
+  const doTestGemini = () => {
+    let bldr = new ComponentBuilderGemini(componentConfig);
+    let c = bldr.generate();
+
+
+     console.log(c);
+     // directory: componentName,
+     // fileName,
+     // content
+
+     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
+  };
+
+  const doTestGrok = () => {
+    let bldr = new ComponentBuilderGrok(componentConfig);
+    let c = bldr.generate();
+
+
+     console.log(c);
+     // directory: componentName,
+     // fileName,
+     // content
+
+     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
+  };
+
+  const doTestGpt = () => {
+    // Example usage:
+
+    let bldr = new ComponentBuilderGPT2(componentConfig);
+    let c = bldr.generate();
+
+
+     console.log(c);
+     // directory: componentName,
+     // fileName,
+     // content
+
+     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
   };
 
   const combinedClassName = `${styles.componentGenerator} ${className}`;
@@ -250,7 +329,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
             </Row>
 
             <Row>
-              <Column width="50%" align="left">
+              <Column width="100%" align="left">
                 <button
                   type="submit"
                   className="button"
@@ -258,8 +337,29 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                 >
                   Generate Component
                 </button>
-                <button type="button" className="button" onClick={handleClear}>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={handleClear}
+                  style={{ marginRight: "1rem" }}
+                >
                   Clear
+                </button>
+
+                <button type="button" className="button" onClick={doTest} style={{ marginRight: "1rem" }}>
+                  Do Test
+                </button>
+
+                <button type="button" className="button" onClick={doTestGemini} style={{ marginRight: "1rem" }}>
+                  Do Test Gemini
+                </button>
+
+                <button type="button" className="button" onClick={doTestGrok} style={{ marginRight: "1rem" }}>
+                  Do Test Grok
+                </button>
+
+                <button type="button" className="button" onClick={doTestGpt} style={{ marginRight: "1rem" }}>
+                  Do Test GPT
                 </button>
               </Column>
             </Row>

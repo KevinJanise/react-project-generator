@@ -1,0 +1,267 @@
+import * as FormatUtils from "utils/FormatUtils";
+
+let noteComponentConfigORIG = {
+  componentConfig: {
+    componentName: "NotesDisplay",
+    componentParams: ["userId", "noteId"],
+    allowsChildren: true,
+    callbackFunctions: ["onEdit", "onClick"]
+  },
+  useEffectConfig: {
+    commandName: "FindNotesCommand",
+    commandParamNames: ["userId", "noteId"],
+    commandStateVar: "noteList",
+    showIsLoading: true
+  },
+};
+
+let noteComponentConfig = {
+  componentConfig: {
+    componentName: "GenericComponent",
+    componentParams: ["paramA", "paramB"],
+    allowsChildren: true,
+    callbackFunctions: ["onSomeAction", "onClick"]
+  },
+  useEffectConfig: {
+    commandName: "FindSomethingCommand",
+    commandParamNames: ["paramA"],
+    commandStateVar: "somethingList",
+    showIsLoading: true
+  },
+};
+
+function mergeDedupeSort(arr1, arr2) {
+  // 1. Merge the two arrays using the spread syntax or concat()
+  const mergedArray = [...arr1, ...arr2]; // or arr1.concat(arr2);
+
+  // 2. Remove duplicates using a Set
+  const uniqueArray = [...new Set(mergedArray)];
+
+  // 3. Sort the array alphabetically using the sort() method
+  uniqueArray.sort(); // By default, sort() sorts strings alphabetically
+
+  return uniqueArray;
+}
+
+class ComponentBuilder {
+  constructor() {
+    this.config = noteComponentConfig;
+  }
+
+  generateComponent() {
+    let reactImports = [];
+
+    // if this.config.useEffectConfig
+    let {
+      useEffectReactImportList,
+      useEffectImportList,
+      useEffectStateVariableList,
+      useEffectHookList,
+      useEffectSourceCode,
+    } = this.generateUseEffect(this.config.useEffectConfig);
+
+    reactImports = [...reactImports ,...useEffectReactImportList]; // individual names such as ["useEffect", "useState"]
+
+    // Begin generating pieces of component
+
+    // begin creating imports
+    let reactImportStatement = this.generateReactImportStatement(reactImports);
+    let allImports = `${reactImportStatement}\n${useEffectImportList.map(theImport => theImport).join('\n')}`;
+    if (this.config.useEffectConfig.showIsLoading) {
+      allImports += `\nimport { LoadingIndicator } from "components/LoadingIndicator";\n`
+    }
+    console.log(allImports);
+
+
+    console.log(useEffectImportList);
+
+    // end creating imports
+
+    // begin state variables
+    console.log(useEffectStateVariableList);
+    let allStateVariables = [...useEffectStateVariableList];
+    let allUseStateStatements = this.generateUseStateStatements(allStateVariables);
+    console.log(allUseStateStatements);
+
+    // end state variables
+
+    // begin create component parameter list
+    let { componentName, componentParams, allowsChildren, callbackFunctions } = { ...this.config.componentConfig };
+    componentParams = [...componentParams];
+
+    if (callbackFunctions) {
+      componentParams = [...componentParams, ...callbackFunctions];
+    }
+
+  if (allowsChildren) {
+    componentParams.push("children");
+  }
+
+  componentParams.push(`className = ""`);
+  componentParams.push(`style = {}`);
+  componentParams.push("...rest");
+// end create component parameter list
+
+
+// begin creating hook list
+let hookList = [...useEffectHookList];
+const allHooks = `${hookList.map(theHook => theHook).join('\n')}`;
+// end createing hook list
+
+// begin creating callback list
+const allCallbacks = [];
+// end creating callback list
+
+    const testId = FormatUtils.toKebabCase(componentName);
+    const className = FormatUtils.toLowerFirstLetter(componentName);
+
+    let showIsLoading = this.config.useEffectConfig.showIsLoading;
+    let commandStateVar = this.config.useEffectConfig.commandStateVar;
+  let componentJsx = this.generateJsx(testId, componentName, allowsChildren, showIsLoading, commandStateVar);
+
+    // SOURCE CODE BEGINS HERE - generate actual component
+    let comp = `
+import styles from "./${componentName}.module.css";
+
+${allImports}
+
+function ${componentName}({ ${componentParams.join(", ")} }) {
+   ${allUseStateStatements}
+   ${allHooks}
+   ${allCallbacks}
+   // TODO: Implement component's JavaScript code
+   ${useEffectSourceCode}
+   const combinedClassName = [styles.${className}, className].filter(Boolean).join(" ");
+
+   return (
+   ${componentJsx}
+   );
+}
+
+export { ${componentName} };
+`;
+
+    return {
+      directory: componentName,
+      fileName: `${componentName}.jsx`,
+      content: comp,
+    };
+  }
+
+  generateJsx(testId, componentName, allowsChildren, showIsLoading, commandStateVar) {
+    let loadingCode = ` {${commandStateVar} && (
+               {/* TODO: Display ${commandStateVar} */}
+             )}`;
+
+          if (showIsLoading) {
+            loadingCode = `<LoadingIndicator isLoading={isExecuting} renderDelay={250}>
+
+          {${commandStateVar} ? (
+              <p>Render the data stored in ${commandStateVar}</p>
+            ) : (
+              <p>No data found.</p>
+            )}
+
+             </LoadingIndicator>`;
+          }
+
+    let jsx = `
+    <div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
+
+    <h3>${componentName} Component</h3>
+
+    {/* TODO: Implement component's JSX code */}${allowsChildren ? "\n\n       {children}" : ""}
+
+  ${loadingCode}
+
+          </div>
+  `;
+
+  return jsx;
+
+  }
+
+  generateReactImportStatement(importList) {
+    return `import { ${importList.join(", ")} } from "react";`;
+  }
+
+  generateUseStateStatements(variableNames) {
+    if (!Array.isArray(variableNames)) {
+      return "// Error: Input must be an array of strings.";
+    }
+
+    if (variableNames.length === 0) {
+      return "// No variable names provided."; //handle empty array
+    }
+
+    let statements = "";
+
+    for (const variableName of variableNames) {
+      if (typeof variableName !== 'string' || !variableName.trim()) {
+        return "// Error: Invalid variable name(s).  Must be non-empty strings.";
+      }
+      // Convert variable name to camelCase for setter function
+      const setterName = `set${variableName.charAt(0).toUpperCase() + variableName.slice(1)}`;
+      statements += `const [${variableName}, ${setterName}] = useState(null);\n`;
+    }
+
+    return statements;
+  }
+
+  // commandName: "FindNotesCommand",
+  // commandParamNames: ["userId", "noteId"],
+  // commandStateVar: "noteList",
+  generateUseEffect({ commandName, commandParamNames, commandStateVar }) {
+    let commandVar = FormatUtils.toLowerFirstLetter(commandName);
+
+    let useEffectReactImportList = ["useState", "useEffect"];
+
+    let useEffectHookList = [
+      `const { execute, isExecuting } = useCommand();`
+    ];
+
+    let useEffectImportList = [
+      `\nimport { useCommand } from "hooks/useCommand";`,
+      `import {${commandName}} from "services/${commandName}";`,
+    ];
+
+    let useEffectStateVariableList = [commandStateVar];
+
+    let useEffectSourceCode = `
+   useEffect(() => {
+     async function init() {
+       const ${commandVar} = new ${commandName}(${commandParamNames.join(", ")});
+       let result = await execute(${commandVar});
+       console.log(result);
+
+       if (result.isCanceled) return;
+
+       if (result.isSuccess) {
+         // TODO: May need to chain deeper into object depending on what is returned from command
+         set${FormatUtils.toUpperFirstLetter(commandStateVar)}(result.value);
+         console.log(result);
+       } else {
+         // TODO: display error message to user, some type of feedback
+         console.log(result.error);
+       }
+     }
+
+     init();
+
+     return () => {
+       // TODO: Possible additional cleanup logic to perform when component unmounts
+     };
+   }, [execute, ${commandParamNames.join(", ")}]);
+          `;
+
+    return {
+      useEffectReactImportList,
+      useEffectImportList,
+      useEffectStateVariableList,
+      useEffectHookList,
+      useEffectSourceCode,
+    };
+  }
+}
+
+export { ComponentBuilder };

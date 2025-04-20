@@ -34,7 +34,7 @@ function CodeDisplay({
         />
       </h3>
 
-      <pre>
+      <pre style={{margin: "1rem"}}>
         <code className={styles.code}>{sourceCode}</code>
       </pre>
     </div>
