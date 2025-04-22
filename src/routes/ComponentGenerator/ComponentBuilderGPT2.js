@@ -1,93 +1,98 @@
+// Best version so far
+
 class ComponentBuilderGPT2 {
   constructor(config) {
     this.config = config;
-    this.component = config.component;
-    this.useEffectConfig = config.useEffectConfig || {};
   }
 
-  generate() {
-    const { name, parameterList = [], hasChildren } = this.component;
+  buildComponentContent() {
+    const { component, useEffectConfig } = this.config;
+    const { name, parameterList = [], hasChildren, hasUseEffect } = component;
+
     const fileName = `${name}.jsx`;
-    const cssClass = name.charAt(0).toLowerCase() + name.slice(1);
-    const testId = this.toKebabCase(name);
-    const props = [
-      ...parameterList,
-      ...(hasChildren ? ["children"] : []),
-      'className = ""',
-      "style = {}",
-      "...rest",
-    ];
+    const cssClass = this.toKebabCase(name);
+    const testId = cssClass;
+    const props = this.buildPropTypes(parameterList, hasChildren);
+    const imports = this.buildImports(name, hasUseEffect, useEffectConfig);
+    const state = this.buildState(hasUseEffect, useEffectConfig);
+    const effect = this.buildEffect(hasUseEffect, useEffectConfig);
+    const innerContent = this.buildDataDisplay(useEffectConfig);
+    const wrappedContent = this.buildWrappedContent(hasUseEffect, useEffectConfig, innerContent, hasChildren);
 
-    const parts = {
-      imports: this.buildImports(),
-      state: this.buildStateBlock(),
-      effect: this.buildUseEffectBlock(),
-      result: this.buildResultBlock(),
-      wrapped: this.buildWrappedContent(),
-      props: props.join(", "),
-      cssClass,
-      testId,
-    };
+    const componentTemplate = `
+${imports}
 
-    const content = this.buildComponentTemplate(parts);
+function ${name}({ ${props} }) {
+  ${state}
+
+  ${effect}
+
+  const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
+
+  return (
+    <div
+      data-testid="${testId}"
+      className={combinedClassName}
+      style={style}
+      {...rest}
+    >
+      ${wrappedContent}
+      {/* implement remaining component code */}
+    </div>
+  );
+}
+
+export { ${name} };
+    `.trim();
 
     return {
       directory: name,
       fileName,
-      content,
+      content: componentTemplate,
     };
   }
 
-  buildImports() {
-    const { name, hasUseEffect } = this.component;
-    const { commandName, showIsLoading } = this.useEffectConfig;
+  buildPropTypes(parameterList, hasChildren) {
+    const coreProps = [...parameterList, 'className = ""', "style = {}"];
+    let theProps = hasChildren ? [...coreProps, "children"].join(", ") : coreProps.join(", ");
+    theProps = theProps + ", ...rest";
 
-    const imports = [
-      `import styles from "./${name}.module.css";`,
-      hasUseEffect && `import { useState, useEffect } from "react";`,
-      hasUseEffect && `import { useCommand } from "hooks/useCommand";`,
-      hasUseEffect &&
-        `import { ${commandName} } from "services/${commandName}";`,
-      hasUseEffect &&
-        showIsLoading &&
-        `import { LoadingIndicator } from "components/LoadingIndicator";`,
-    ];
+    return theProps;
+  }
 
+  buildImports(componentName, hasUseEffect, useEffectConfig) {
+    const imports = [`import styles from "./${componentName}.module.css";`];
+    if (hasUseEffect) {
+      imports.push('import { useState, useEffect } from "react";');
+      imports.push('import { useCommand } from "hooks/useCommand";');
+      if (useEffectConfig.commandName) {
+        imports.push(`import { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`);
+      }
+      if (useEffectConfig.showIsLoading) {
+        imports.push('import { LoadingIndicator } from "components/LoadingIndicator";');
+      }
+    }
     return imports.filter(Boolean).join("\n");
   }
 
-  buildStateBlock() {
-    if (!this.component.hasUseEffect) return "";
-
-    const { commandStateVar } = this.useEffectConfig;
-
+  buildState(hasUseEffect, useEffectConfig) {
+    if (!hasUseEffect || !useEffectConfig.commandStateVar) return "";
+    const { commandStateVar } = useEffectConfig;
     return `
-  const [${commandStateVar}, set${this.capitalize(
-      commandStateVar
-    )}] = useState(null);
+  const [${commandStateVar}, set${this.capitalize(commandStateVar)}] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const { execute, isProcessing } = useCommand();
     `.trim();
   }
 
-  buildUseEffectBlock() {
-    if (!this.component.hasUseEffect) return "";
+  buildEffect(hasUseEffect, useEffectConfig) {
+    if (!hasUseEffect || !useEffectConfig.commandName) return "";
+    const { commandName, commandParams = [], commandStateVar } = useEffectConfig;
 
-    const {
-      commandName,
-      commandParams = [],
-      commandStateVar,
-    } = this.useEffectConfig;
-
+    const dependencyList = ["execute", ...commandParams];
     const checks = commandParams
-      .map(
-        (p) => `
-      if (!${p}) {
-        setErrorMessage("${p} is required");
-        return;
-      }`
-      )
-      .join("");
+      .map(p => `if (!${p}) { setErrorMessage("${this.capitalize(p)} is required"); return; }`)
+      .join("\n      ");
 
     return `
   useEffect(() => {
@@ -107,96 +112,64 @@ class ComponentBuilderGPT2 {
     }
 
     init();
-  }, [${["execute", ...commandParams].join(", ")}]);
+  }, [${dependencyList.join(", ")}]);
     `.trim();
   }
 
-  buildResultBlock() {
-    if (!this.component.hasUseEffect) return "";
+  buildDataDisplay(useEffectConfig) {
+    if (!useEffectConfig?.commandStateVar) return "<p>No data available</p>";
+    const { commandStateVar, stateVarIsList } = useEffectConfig;
 
-    const { commandStateVar, stateVarIsList } = this.useEffectConfig;
+    if (stateVarIsList) {
+      return `
+        <>
+          <h2>List of Items</h2>
+          <ul>
+            {${commandStateVar}?.map((item, index) => (
+              <li key={item?.id ?? index}>{item.description}</li>
+            ))}
+          </ul>
+        </>
+      `.trim();
+    } else {
+      return `<p>Var is: {JSON.stringify(${commandStateVar})}</p>`;
+    }
+  }
 
-    const content = stateVarIsList
+  buildErrorMessage(hasUseEffect) {
+    return hasUseEffect
+      ? `{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}`
+      : "";
+  }
+
+  buildLoadingIndicator(hasUseEffect, useEffectConfig, content) {
+    if (hasUseEffect && useEffectConfig?.showIsLoading) {
+      return `
+        <LoadingIndicator isLoading={isProcessing} renderDelay={300}>
+          ${content}
+        </LoadingIndicator>
+      `.trim();
+    }
+    return content;
+  }
+
+  buildWrappedContent(hasUseEffect, useEffectConfig, innerContent, hasChildren) {
+    const errorMessage = this.buildErrorMessage(hasUseEffect);
+    const conditionalContent = hasUseEffect
       ? `
-      <>
-            <h2>List of Items</h2>
-
-            <ul>
-              {${commandStateVar}.map((item) => (
-                <li key={item.id}>{item.description}</li>
-              ))}
-            </ul>
-          </>
-      `
-      : `<p>Var is: {JSON.stringify(${commandStateVar})}</p>`;
-
-    return `
-        {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
-
-        {${commandStateVar} ? (
-          ${content.trim()}
+        ${errorMessage}
+        {${useEffectConfig.commandStateVar} ? (
+          ${innerContent}
         ) : (
           <p>No data available</p>
         )}
-    `.trim();
-  }
+      `.trim()
+      : innerContent;
 
-  buildWrappedContent() {
-    const { hasChildren, hasUseEffect } = this.component;
-    const showLoading = this.useEffectConfig.showIsLoading;
-    const result = this.buildResultBlock();
-    const childrenBlock = hasChildren ? `\n        {children}` : "";
+    const withLoading = this.buildLoadingIndicator(hasUseEffect, useEffectConfig, conditionalContent);
+    const childrenBlock = hasChildren ? `\n      {children}` : "";
 
-    if (hasUseEffect && showLoading) {
-      return `
-      <LoadingIndicator isLoading={isProcessing} renderDelay={300}>
-        ${result}
-        ${childrenBlock}
-      </LoadingIndicator>
-      `.trim();
-    }
-
-    return `
-      ${result}
-      ${childrenBlock}
-    `.trim();
-  }
-
-  buildComponentTemplate({
-    imports,
-    state,
-    effect,
-    wrapped,
-    props,
-    cssClass,
-    testId,
-  }) {
-    const { name } = this.component;
-
-    return `${imports}
-
-function ${name}({ ${props} }) {
-  ${state}
-
-  ${effect}
-
-  const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
-
-  return (
-    <div
-      data-testid="${testId}"
-      className={combinedClassName}
-      style={style}
-      {...rest}
-    >
-      ${wrapped}
-      {/* implement remaining component code */}
-    </div>
-  );
-}
-
-export { ${name} };
-    `.trim();
+    return `${withLoading}${childrenBlock}`;
   }
 
   capitalize(str) {
@@ -206,6 +179,11 @@ export { ${name} };
   toKebabCase(str) {
     return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
   }
+
+  generate() {
+    return this.buildComponentContent();
+  }
 }
 
 export { ComponentBuilderGPT2 };
+

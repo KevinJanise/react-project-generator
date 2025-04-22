@@ -11,11 +11,10 @@ class ComponentBuilderGemini {
     const cssClass = this.toKebabCase(name);
     const testId = cssClass;
     const props = this.buildPropTypes(parameterList, hasChildren);
-
     const imports = this.buildImports(name, hasUseEffect, useEffectConfig);
     const state = this.buildState(hasUseEffect, useEffectConfig);
     const effect = this.buildEffect(hasUseEffect, useEffectConfig);
-    const innerContent = this.buildInnerContent(hasUseEffect, useEffectConfig);
+    const innerContent = this.buildDataDisplay(useEffectConfig); // Corrected method call
     const wrappedContent = this.buildWrappedContent(hasUseEffect, useEffectConfig, innerContent, hasChildren);
 
     const componentTemplate = `
@@ -112,8 +111,8 @@ export { ${name} };
     `.trim();
   }
 
-  buildInnerContent(hasUseEffect, useEffectConfig) {
-    if (!hasUseEffect || !useEffectConfig.commandStateVar) return "<p>No data available</p>";
+  buildDataDisplay(useEffectConfig) {
+    if (!useEffectConfig?.commandStateVar) return "<p>No data available</p>";
     const { commandStateVar, stateVarIsList } = useEffectConfig;
 
     if (stateVarIsList) {
@@ -132,23 +131,31 @@ export { ${name} };
     }
   }
 
-  buildWrappedContent(hasUseEffect, useEffectConfig, innerContent, hasChildren) {
-    const showLoading = hasUseEffect && useEffectConfig.showIsLoading;
-    const childrenBlock = hasChildren ? `\n      {children}` : "";
-    const errorBlock = hasUseEffect ? `{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}\n      ` : "";
-    const conditionalContent = hasUseEffect ? `\n      {${useEffectConfig.commandStateVar} ? (\n        ${innerContent}\n      ) : (\n        <p>No data available</p>\n      )}\n    ` : innerContent;
+  buildErrorMessage(hasUseEffect) {
+    return hasUseEffect ? `{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}` : "";
+  }
 
-    if (showLoading) {
+  buildLoadingIndicator(hasUseEffect, useEffectConfig, content) {
+    if (hasUseEffect && useEffectConfig?.showIsLoading) {
       return `
       <LoadingIndicator isLoading={isProcessing} renderDelay={300}>
-        ${errorBlock}${conditionalContent}${childrenBlock}
+        ${content}
       </LoadingIndicator>
-      `.trim();
+      `;
     }
+    return content;
+  }
 
-    return `
-      ${errorBlock}${conditionalContent}${childrenBlock}
-    `.trim();
+  buildWrappedContent(hasUseEffect, useEffectConfig, innerContent, hasChildren) {
+    const errorMessage = this.buildErrorMessage(hasUseEffect);
+    const dataDisplay = this.buildDataDisplay(useEffectConfig);
+    const conditionalContent = hasUseEffect
+      ? `${errorMessage}\n      {${useEffectConfig.commandStateVar} ? (\n        ${dataDisplay}\n      ) : (\n        <p>No data available</p>\n      )}`
+      : innerContent;
+    const withLoading = this.buildLoadingIndicator(hasUseEffect, useEffectConfig, conditionalContent);
+    const childrenBlock = hasChildren ? `\n      {children}` : "";
+
+    return `${withLoading}${childrenBlock}`;
   }
 
   capitalize(str) {

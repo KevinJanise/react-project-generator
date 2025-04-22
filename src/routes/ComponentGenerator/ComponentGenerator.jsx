@@ -24,6 +24,8 @@ import { ComponentBuilderGrok } from "./ComponentBuilderGrok";
 
 import { ComponentBuilderGPT2 } from "./ComponentBuilderGPT2";
 import { ComponentBuilderGemini } from "./ComponentBuilderGemini";
+import { ComponentBuilderClaude } from "./ComponentBuilderClaude";
+import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
 
 
 import * as Utils from "utils/Utils";
@@ -38,18 +40,23 @@ import {
 const componentConfig = {
   component: {
     name: "NoteDisplay",
+    componentName: "NoteDisplay",
     parameterList: ["noteId", "userId", "userName"],
+    componentParams: ["noteId", "userId", "userName"],
     hasChildren: true,
-    hasUseEffect: true,
+    allowsChildren: true
   },
   useEffectConfig: {
     commandName: "FindNoteCommand",
-    commandParams: ["noteId", "userId"],
+    commandParams: ["noteId", "userId"],  // should be a subset of component.parameterList
     commandStateVar: "note",
     showIsLoading: true,
     stateVarIsList: true,
-  },
+  }
 };
+
+// componentConfig.useEffectConfig = null;
+
 
 function ComponentGenerator({ className = "", style = {}, ...rest }) {
   const [component, setComponent] = useState(null);
@@ -200,6 +207,36 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
      setComponent({ indexFile: "", componentFile: c, cssFile: "" });
   };
 
+  const doTestClaude = () => {
+    // Example usage:
+
+    let bldr = new ComponentBuilderClaude(componentConfig);
+    let c = bldr.generate();
+
+
+     console.log(c);
+     // directory: componentName,
+     // fileName,
+     // content
+
+     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
+  };
+
+  const doTestKevin = () => {
+    // Example usage:
+
+    let componentBuilder = new ComponentBuilderKevin(componentConfig);
+    let component = componentBuilder.generate();
+
+
+     console.log(component);
+     // directory: componentName,
+     // fileName,
+     // content
+
+     setComponent({ indexFile: "", componentFile: component, cssFile: "" });
+  };
+
   const combinedClassName = `${styles.componentGenerator} ${className}`;
 
   return (
@@ -346,20 +383,29 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   Clear
                 </button>
 
+                <button type="button" className="button" onClick={doTestKevin} style={{ marginRight: "1rem" }}>
+                  Kevin
+                </button>
+
+
                 <button type="button" className="button" onClick={doTest} style={{ marginRight: "1rem" }}>
                   Do Test
                 </button>
 
                 <button type="button" className="button" onClick={doTestGemini} style={{ marginRight: "1rem" }}>
-                  Do Test Gemini
+                  Gemini
                 </button>
 
                 <button type="button" className="button" onClick={doTestGrok} style={{ marginRight: "1rem" }}>
-                  Do Test Grok
+                  Grok
+                </button>
+
+                <button type="button" className="button" onClick={doTestClaude} style={{ marginRight: "1rem" }}>
+                  Claude
                 </button>
 
                 <button type="button" className="button" onClick={doTestGpt} style={{ marginRight: "1rem" }}>
-                  Do Test GPT
+                  GPT
                 </button>
               </Column>
             </Row>
