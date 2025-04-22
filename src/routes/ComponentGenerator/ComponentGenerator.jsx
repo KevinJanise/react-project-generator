@@ -210,7 +210,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
       };
     }
 
-
+/*
     theComponentConfig = {
       component: {
         componentName: "GenericComponent",
@@ -227,8 +227,8 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
         showIsLoading: false,
         stateVarIsList: true,
       }
-
     };
+*/
 
     return theComponentConfig;
   };
@@ -301,10 +301,8 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   errorMessage={getErrorMessage("callbackFunctions")}
                 />
               </Column>
-            </Row>
-            <Row>
               <Column
-                width="50%"
+                width="25%"
                 valign="center"
                 style={{ paddingTop: "2rem" }}
               >
@@ -319,6 +317,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   Can have child components
                 </label>
               </Column>
+
             </Row>
 
             <Row>

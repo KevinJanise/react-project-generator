@@ -14,7 +14,18 @@ export const generateCssFile = (name) => {
   return {
     directory: name,
     fileName: `${name}.module.css`,
-    content: `.${className} {\n  /* add CSS */\n}\n\n.error { \n  color: "red";\n}`,
+    content: `
+:root {
+  --error-color: #FF0000;
+}
+
+.${className} {
+  /* add CSS */
+}
+
+.error {
+  color: var(--error-color);
+}`,
   };
 };
 
