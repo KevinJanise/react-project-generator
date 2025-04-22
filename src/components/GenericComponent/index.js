@@ -1,1 +1,1 @@
-export { GenericComponent } from "./GenericComponent";
+export { GenericComponent } from './GenericComponent';

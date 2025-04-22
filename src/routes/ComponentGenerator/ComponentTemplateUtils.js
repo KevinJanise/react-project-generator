@@ -7,6 +7,18 @@ export const generateIndexFile = (componentName) => ({
   content: `export { ${componentName} } from './${componentName}';`,
 });
 
+
+export const generateCssFile = (name) => {
+  const className = FormatUtils.toLowerFirstLetter(name);
+
+  return {
+    directory: name,
+    fileName: `${name}.module.css`,
+    content: `.${className} {\n  /* add CSS */\n}\n\n.error { \n  color: "red";\n}`,
+  };
+};
+
+
 export const generateParameterList = (
   hasChildren,
   parameters,
@@ -159,12 +171,3 @@ export { ${name} };
   };
 };
 
-export const generateCssFile = (name) => {
-  const className = FormatUtils.toLowerFirstLetter(name);
-
-  return {
-    directory: name,
-    fileName: `${name}.module.css`,
-    content: `.${className} {\n  /* add CSS */\n}`,
-  };
-};

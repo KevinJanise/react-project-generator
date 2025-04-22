@@ -23,9 +23,6 @@ import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
 //import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGPT";
 //import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGrok";
 
-import {GenericComponent} from "components/GenericComponent";
-
-
 import * as Utils from "utils/Utils";
 
 import {
@@ -34,7 +31,6 @@ import {
   generateIndexFile,
 } from "./ComponentTemplateUtils";
 
-
 const componentConfig = {
   component: {
     name: "GenericComponent",
@@ -42,19 +38,18 @@ const componentConfig = {
     componentParams: ["messageId"],
     callbackFunctions: ["onUpdate"],
     hasChildren: true,
-    allowsChildren: true
+    allowsChildren: true,
   },
   useEffectConfig: {
     commandName: "FindMessageCommand",
-    commandParams: ["messageId"],  // should be a subset of component.parameterList
+    commandParams: ["messageId"], // should be a subset of component.parameterList
     commandStateVar: "message",
     showIsLoading: true,
-    stateVarIsList: false,
-  }
+    stateVarIsList: true,
+  },
 };
 
- //componentConfig.useEffectConfig = null;
-
+//componentConfig.useEffectConfig = null;
 
 function ComponentGenerator({ className = "", style = {}, ...rest }) {
   const [component, setComponent] = useState(null);
@@ -68,6 +63,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     commandName: "",
     commandParams: "",
     stateVariable: "",
+    stateVarIsList: false,
     showLoading: false,
   };
 
@@ -83,6 +79,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     doInitialization,
     commandName,
     stateVariable,
+    stateVarIsList,
     showLoading,
     commandParams,
   } = formData;
@@ -126,22 +123,25 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
   // let zipContent = [{directory, fileContent}, {directory, fileContent}]
   // handleDownloadZip(zipContent);
   const handleDownloadZip = () => {
-    if (!component || !componentName) return;
-
-    const zip = new JSZip();
+    if (!component) return;
 
     // Add all component files inside a single directory (component name)
-    const componentDir = componentName; // This will create a folder named "EditNote"
+    const componentDir = component.componentFile.directory;
+    let zipFileName = componentDir;
+
+    const zip = new JSZip();
 
     // Add the files (index.js, component.jsx, and .module.css) inside this directory
     zip.file(
       `${componentDir}/${component.indexFile.fileName}`,
       component.indexFile.content
     );
+
     zip.file(
       `${componentDir}/${component.componentFile.fileName}`,
       component.componentFile.content
     );
+
     zip.file(
       `${componentDir}/${component.cssFile.fileName}`,
       component.cssFile.content
@@ -149,48 +149,119 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
 
     // Generate the zip file and trigger download
     zip.generateAsync({ type: "blob" }).then((blob) => {
-      saveAs(blob, `${componentName}.zip`);
+      saveAs(blob, `${zipFileName}.zip`);
     });
   };
 
-  const doTest = () => {
-    let builder = new ComponentBuilder(componentConfig);
-    let componentFile = builder.generateComponent();
-    console.log(componentFile);
+  const buildComponentConfig = () => {
+    /*
+    const componentConfig = {
+  component: {
+    name: "GenericComponent",
+    componentName: "GenericComponent",
+    componentParams: ["messageId"],
+    callbackFunctions: ["onUpdate"],
+    hasChildren: true,
+    allowsChildren: true
+  },
+  useEffectConfig: {
+    commandName: "FindMessageCommand",
+    commandParams: ["messageId"],  // should be a subset of component.parameterList
+    commandStateVar: "message",
+    showIsLoading: true,
+    stateVarIsList: true,
+  }
+};
 
-    let indexFile = "";
-    let cssFile = "";
+    componentName,
+    hasChildComponents,
+    parameterNames,
+    callbackFunctions,
+    doInitialization,
+    commandName,
+    stateVariable,
+    showLoading,
+    commandParams,
+
+    */
+
+    let componentConfig = {
+      componentName: formData.componentName,
+      componentParams: Utils.parseParamList(formData.parameterNames),
+      callbackFunctions: Utils.parseParamList(formData.callbackFunctions),
+      allowsChildren: formData.hasChildComponents,
+    };
+
+    console.log("componentConfig: ", componentConfig);
+
+    let theComponentConfig = {
+      component: componentConfig,
+    };
+
+    if (formData.doInitialization) {
+      theComponentConfig.useEffectConfig = {
+        commandName: formData.commandName,
+        commandParams: Utils.parseParamList(formData.commandParams), // should be a subset of component.parameterList
+        commandStateVar: formData.stateVariable,
+        showIsLoading: formData.showLoading,
+        stateVarIsList: formData.stateVarIsList
+      };
+    }
+
+
+    theComponentConfig = {
+      component: {
+        componentName: "NotesList",
+        componentParams: ["notesId"],
+        callbackFunctions: [], // ["onClick", "onEdit"],
+        allowsChildren: true,
+      }
+
+      ,
+      useEffectConfig: {
+        commandName: "FindNotes",
+        commandParams: ["notesId"],  // should be a subset of component.parameterList
+        commandStateVar: "notesList",
+        showIsLoading: false,
+        stateVarIsList: true,
+      }
+
+    };
+
+    return theComponentConfig;
+  };
+
+  const doTestKevin = () => {
+    let theComponentConfig = buildComponentConfig();
+    console.log("theComponentConfig: ", theComponentConfig);
+
+    let componentName = theComponentConfig.component.componentName;
+    const indexFile = generateIndexFile(componentName);
+    const cssFile = generateCssFile(componentName);
+
+    // each should return
+    // directory: componentName,
+    // fileName,
+    // content
+
+    // put these in a javascript object and be able to turn into JSON and save and parse again later on
+    let componentBuilder = new ComponentBuilderKevin(theComponentConfig);
+    let componentFile = componentBuilder.generate();
 
     setComponent({ indexFile, componentFile, cssFile });
   };
 
-  const doTestKevin = () => {
-    // Example usage:
-
-    let componentBuilder = new ComponentBuilderKevin(componentConfig);
-    let component = componentBuilder.generate();
-
-
-     console.log(component);
-     // directory: componentName,
-     // fileName,
-     // content
-
-     setComponent({ indexFile: "", componentFile: component, cssFile: "" });
-  };
-
   const combinedClassName = `${styles.componentGenerator} ${className}`;
-
+  /*
+  <GenericComponent messageId="abc123" className={styles.content}>
+  <p>Here is a child component</p>
+  </GenericComponent>
+*/
   return (
     <div className={combinedClassName} style={style} {...rest}>
       <PageTitle title="Component Generator" />
       <PageSection>
-      <GenericComponent messageId="abc123" className={styles.content}>
-        <p>Here is a child component</p>
-        </GenericComponent>
-
-
-      <form onSubmit={handleGenerateComponent}>
+        <form onSubmit={handleGenerateComponent}>
           <Grid>
             <Row>
               <Column width="25%">
@@ -313,6 +384,25 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
             </Row>
 
             <Row>
+              <Column
+                width="25%"
+                valign="center"
+                style={{ paddingTop: "2rem" }}
+              >
+                <label>
+                  <input
+                    className={styles.checkbox}
+                    type="checkbox"
+                    name="stateVarIsList"
+                    checked={stateVarIsList}
+                    onChange={handleChange}
+                  />
+                  State variable is a list
+                </label>
+              </Column>
+            </Row>
+
+            <Row>
               <Column width="100%" align="left">
                 <button
                   type="submit"
@@ -330,15 +420,14 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   Clear
                 </button>
 
-                <button type="button" className="button" onClick={doTestKevin} style={{ marginRight: "1rem" }}>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={doTestKevin}
+                  style={{ marginRight: "1rem" }}
+                >
                   Kevin
                 </button>
-
-
-                <button type="button" className="button" onClick={doTest} style={{ marginRight: "1rem" }}>
-                  Do Test
-                </button>
-
               </Column>
             </Row>
           </Grid>
@@ -364,7 +453,6 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
               sourceCode={component[type].content}
             />
           ))}
-
         </PageSection>
       )}
     </div>

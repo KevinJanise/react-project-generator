@@ -24,15 +24,16 @@ function CodeDisplay({
   return (
     <div className={combinedClassName} style={style} {...rest}>
       <h3 className={styles.title}>
-        {wasCopied && <span className={styles.checkMark}>&#10003;</span>}
         {title}{" "}
         <img
           src={iconCopy}
           className={styles.copyIcon}
           alt="Copy code"
+          title="Copy to clipboard"
           onClick={handleCopyToClipboard}
         />
-      </h3>
+        {wasCopied && <span className={styles.checkMark}>&#10003;</span>}
+        </h3>
 
       <pre style={{margin: "1rem"}}>
         <code className={styles.code}>{sourceCode}</code>

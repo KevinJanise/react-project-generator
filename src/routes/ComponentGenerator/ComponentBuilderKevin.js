@@ -60,23 +60,14 @@ const componentConfig = {
     let componentSourceCode = `${importStatements}
 
 function ${componentName} ({${componentParams}}) {
-  ${useStateSource}${useEffectSource}
-  ${callbackHandlers.jsCode}
-
+  ${useStateSource}${useEffectSource}${callbackHandlers.jsCode}
   const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
 
   return (
     <div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
-
-      {/* implement component code */}
-
       <h3>${componentName}</h3>
 
-      ${callbackHandlers.jsxCode}
-
-      ${useEffectOutput}
-      ${componentJsxBody}
-
+      {/* TODO implement component JSX */}${callbackHandlers.jsxCode}${useEffectOutput}${componentJsxBody}
     </div>
   );
 }
@@ -96,10 +87,7 @@ export { ${componentName} };
 
   buildIsLoadingWrapper(content) {
     let loadingIndicator = `
-        <LoadingIndicator isLoading={isExecuting} renderDelay={250}>
-          ${content}
-      </LoadingIndicator>
-  `.trim();
+      <LoadingIndicator isLoading={isExecuting} renderDelay={250}>${this.indent(content, 2)}\n      </LoadingIndicator>`;
 
     return loadingIndicator;
   }
@@ -112,35 +100,34 @@ export { ${componentName} };
     let useEffectOutput = null;
 
     if (stateVarIsList) {
-      useEffectOutput = `    <>
-          <h2>List of Items</h2>
-          <ul>
-            {${commandStateVar}?.map((item, index) => (
-              <li key={item?.id ?? index}>{item.description}</li>
-            ))}
-          </ul>
-        </>
-      `.trim();
+      useEffectOutput = `
+           <>
+             <h2>List of Items</h2>
+             <ul>
+               {${commandStateVar}?.map((item, index) => (
+                 {/* TODO: each key should be unique and unchanging */}
+                 <li key={item?.id ?? index}>{item.description}</li>
+               ))}
+             </ul>
+           </>
+      `;
     } else {
       // single line
       useEffectOutput = `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
     }
 
-    useEffectOutput = `{${commandStateVar} ? (
-  ${useEffectOutput}
-) : (
-  <p className={styles.error}>No data available</p>
-)}`;
+    useEffectOutput = `\n        {${commandStateVar} ? (  ${useEffectOutput}
+        ) : (
+           <p className={styles.error}>No data available</p>
+        )}`;
 
     if (showIsLoading) {
       useEffectOutput = this.buildIsLoadingWrapper(useEffectOutput);
     }
 
-    useEffectOutput = `
-        {errorMessage && (
-            <p className={styles.error}>{errorMessage}</p>
-        )}
-
+    useEffectOutput = `\n\n      {errorMessage && (
+          <p className={styles.error}>{errorMessage}</p>
+      )}
         ${useEffectOutput}
     `;
 
@@ -148,11 +135,7 @@ export { ${componentName} };
   }
 
   buildcomponentJsxBody(componentConfig) {
-    let children = componentConfig.allowsChildren ? "{ children }" : "";
-
-    let componentJsxBody = `
-      ${children}
-`;
+    let componentJsxBody = componentConfig.allowsChildren ? `\n      { children }` : "";
 
     return componentJsxBody;
   }
@@ -162,13 +145,10 @@ export { ${componentName} };
     if (!useEffectConfig?.commandStateVar) return "";
 
     const { commandStateVar } = useEffectConfig;
-    return `
-  const [${commandStateVar}, set${this.toUpperFirstLetter(
-      commandStateVar
-    )}] = useState(null);
+    return (
+`const [${commandStateVar}, set${this.toUpperFirstLetter(commandStateVar)}] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
-  const { execute, isExecuting } = useCommand();
-    `.trim();
+  const { execute, isExecuting } = useCommand();`);
   }
 
   buildUseEffect(useEffectConfig) {
@@ -211,10 +191,9 @@ export { ${componentName} };
     init();
 
     return () => {
-      // Cleanup logic if needed
+      // TODO Cleanup logic if needed
     };
-  }, [${dependencyList.join(", ")}]);
-    `;
+  }, [${dependencyList.join(", ")}]);\n`;
   }
 
   buildComponentParams(componentConfig) {
@@ -250,7 +229,7 @@ export { ${componentName} };
     );
 
     if (useEffectConfig) {
-      imports.push('import { useState, useEffect } from "react";');
+      imports.push('\nimport { useState, useEffect } from "react";');
 
       if (useEffectConfig.showIsLoading) {
         imports.push(
@@ -274,13 +253,13 @@ export { ${componentName} };
       .filter(Boolean)
       .map((cb) => {
         const handler = `handle${cb.charAt(0).toUpperCase()}${cb.slice(1)}`;
-        return `const ${handler} = () => {
-      // let parent know something happened
-      console.log("notifying parent");
-      ${cb}?.("something happened")
+        return `\n  const ${handler} = () => {
+    // TODO let parent know something happened
+    console.log("notifying parent - ${cb}");
+    ${cb}?.("${cb} happened!")
   };`;
       })
-      .join("\n\n");
+      .join("\n");
 
 
       // generate JSX code
@@ -290,10 +269,14 @@ export { ${componentName} };
       .map((cb) => {
         const handler = `handle${cb.charAt(0).toUpperCase()}${cb.slice(1)}`;
 //        return `<button type="button" onClick={() => {${handler}("something happened");}}>Click Me</button>`;
-        return `<button type="button" onClick={${handler}}>Click Me</button>`;
-      })
-      .join("\n\n");
+        return `\n      <button type="button" onClick={${handler}}>Click ${cb}</button>`;
+      }).join("");
 
+      //jsCode = jsCode.trim();
+      jsCode = jsCode === "" ? "" : jsCode + "\n";
+
+      //jsxCode = jsxCode.trim();
+      jsxCode = jsxCode === "" ? "" : "\n" + jsxCode;
 
       return {jsCode, jsxCode};
   };
@@ -309,6 +292,13 @@ export { ${componentName} };
 
   toKebabCase(str) {
     return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  }
+
+  indent(str, numSpaces) {
+    console.log("*********** indent: ", str);
+
+    const indentStr = ' '.repeat(numSpaces);
+    return str.split('\n').map(line => indentStr + line).join('\n');
   }
 }
 

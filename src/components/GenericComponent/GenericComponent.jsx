@@ -31,11 +31,11 @@ function GenericComponent ({messageId, onUpdate, children, className = "", style
       // Cleanup logic if needed
     };
   }, [execute, messageId]);
-
+    
   const handleOnUpdate = () => {
-      // let parent know something happened
-      console.log("notifying parent");
-      onUpdate?.("something happened")
+    // let parent know something happened
+    console.log("notifying parent");
+    onUpdate?.("something happened")
   };
 
   const combinedClassName = [styles.genericComponent, className].filter(Boolean).join(" ");
@@ -48,23 +48,28 @@ function GenericComponent ({messageId, onUpdate, children, className = "", style
       <h3>GenericComponent</h3>
 
       <button type="button" onClick={handleOnUpdate}>Click Me</button>
-
-
-        {errorMessage && (
-            <p className={styles.error}>{errorMessage}</p>
-        )}
-
-        <LoadingIndicator isLoading={isExecuting} renderDelay={250}>
-          {message ? (
-  <p>message is: {JSON.stringify(message)}</p>
-) : (
-  <p className={styles.error}>No data available</p>
-)}
+      
+      {errorMessage && (
+          <p className={styles.error}>{errorMessage}</p>
+      )}
+        
+      <LoadingIndicator isLoading={isExecuting} renderDelay={250}>
+          {message ? (  
+            <>
+              <h2>List of Items</h2>
+              <ul>
+                {message?.map((item, index) => (
+                  <li key={item?.id ?? index}>{item.description}</li>
+                ))}
+              </ul>
+            </>
+      
+          ) : (
+            <p className={styles.error}>No data available</p>
+          )}
       </LoadingIndicator>
-
-
+    
       { children }
-
 
     </div>
   );

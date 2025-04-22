@@ -1,6 +1,7 @@
 .genericComponent {
+  /* add CSS */
 }
 
-.error {
-  color: red;
+.error { 
+  color: "red";
 }
