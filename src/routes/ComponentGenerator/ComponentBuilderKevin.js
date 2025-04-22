@@ -54,7 +54,7 @@ class ComponentBuilderKevin {
     let componentSourceCode =
     `${importStatements}
 
-function ${componentName} (${componentParams}) {
+function ${componentName} ({${componentParams}}) {
   ${useStateSource}${useEffectSource}
 
   const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
