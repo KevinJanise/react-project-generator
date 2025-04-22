@@ -5,13 +5,13 @@ import { useCommand } from "hooks/useCommand";
 import { FindMessageCommand } from "services/FindMessageCommand";
 
 function GenericComponent ({messageId, onClick, onEdit, children, className = "", style = {}, ...rest}) {
-  const [messageList, setMessageList] = useState(null);
+  const [messageList, setMessageList] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const { execute, isExecuting } = useCommand();
 
   useEffect(() => {
-    async function init() {
+    const init = async () => {
       if (!messageId) { setErrorMessage("MessageId is required"); return; }
 
       const command = new FindMessageCommand(messageId);
@@ -62,8 +62,17 @@ function GenericComponent ({messageId, onClick, onEdit, children, className = ""
         <p className={styles.error}>{errorMessage}</p>
       )}
 
+      {/* isInitialized prevents flashing No data message before search is done */}
       {isInitialized && (messageList ? (
-        <p>messageList is: {JSON.stringify(messageList)}</p>
+        <>
+           <h2>List of Items</h2>
+           <ul>
+            {messageList?.map((item, index) => (
+              // TODO: Each key should be unique and unchanging, ideally from your data
+              <li key={item?.id ?? index}>{item.description}</li>
+            ))}
+          </ul>
+        </>
       ) : (
         <p className={styles.error}>No data available</p>
       ))}

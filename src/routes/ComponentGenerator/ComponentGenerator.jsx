@@ -225,7 +225,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
         commandParams: ["messageId"],  // should be a subset of component.parameterList
         commandStateVar: "messageList",
         showIsLoading: false,
-        stateVarIsList: false,
+        stateVarIsList: true,
       }
 
     };

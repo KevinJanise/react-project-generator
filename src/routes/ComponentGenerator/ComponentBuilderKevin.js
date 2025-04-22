@@ -100,21 +100,22 @@ export { ${componentName} };\n`;
 
     if (stateVarIsList) {
       useEffectOutput = `
-         <>
+        <>
            <h2>List of Items</h2>
-            <ul>
-             {${commandStateVar}?.map((item, index) => (
-               // TODO: each key should be unique and unchanging
-               <li key={item?.id ?? index}>{item.description}</li>
-             ))}
-           </ul>
-         </>`;
+           <ul>
+            {${commandStateVar}?.map((item, index) => (
+              // TODO: Each key should be unique and unchanging, ideally from your data
+              <li key={item?.id ?? index}>{item.description}</li>
+            ))}
+          </ul>
+        </>`;
     } else {
       // single line
       useEffectOutput = `\n        <p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
     }
 
-    useEffectOutput = `\n      {isInitialized && (${commandStateVar} ? (     ${useEffectOutput}
+    useEffectOutput = `\n      {/* isInitialized prevents flashing No data message before search is done */}
+      {isInitialized && (${commandStateVar} ? (     ${useEffectOutput}
       ) : (
         <p className={styles.error}>No data available</p>
       ))}`;
@@ -142,9 +143,13 @@ export { ${componentName} };\n`;
   buildUseState(useEffectConfig) {
     if (!useEffectConfig?.commandStateVar) return "";
 
+    let intCommandStateVar = "null";
+    if (useEffectConfig.stateVarIsList) {
+      intCommandStateVar = "[]";
+    }
     const { commandStateVar } = useEffectConfig;
     return (
-`const [${commandStateVar}, set${this.toUpperFirstLetter(commandStateVar)}] = useState(null);
+`const [${commandStateVar}, set${this.toUpperFirstLetter(commandStateVar)}] = useState(${intCommandStateVar});
   const [isInitialized, setIsInitialized] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const { execute, isExecuting } = useCommand();`);
@@ -172,7 +177,7 @@ export { ${componentName} };\n`;
     return `
 
   useEffect(() => {
-    async function init() {
+    const init = async () => {
       ${checks}
 
       const command = new ${commandName}(${commandParams.join(", ")});
@@ -273,10 +278,8 @@ export { ${componentName} };\n`;
         return `\n      <button type="button" onClick={${handler}}>Click ${cb}</button>`;
       }).join("");
 
-      //jsCode = jsCode.trim();
       jsCode = jsCode === "" ? "" : jsCode + "\n";
 
-      //jsxCode = jsxCode.trim();
       jsxCode = jsxCode === "" ? "" : "\n" + jsxCode;
 
       return {jsCode, jsxCode};
@@ -296,8 +299,6 @@ export { ${componentName} };\n`;
   }
 
   indent(str, numSpaces) {
-    console.log("*********** indent: ", str);
-
     const indentStr = ' '.repeat(numSpaces);
     return str.split('\n').map(line => indentStr + line).join('\n');
   }
