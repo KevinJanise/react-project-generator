@@ -25,6 +25,8 @@ import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
 
 import * as Utils from "utils/Utils";
 
+import { GenericComponent } from "components/GenericComponent";
+
 import {
   generateComponentFile,
   generateCssFile,
@@ -211,19 +213,19 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
 
     theComponentConfig = {
       component: {
-        componentName: "NotesList",
-        componentParams: ["notesId"],
-        callbackFunctions: [], // ["onClick", "onEdit"],
+        componentName: "GenericComponent",
+        componentParams: ["messageId"],
+        callbackFunctions: ["onClick", "onEdit"],
         allowsChildren: true,
       }
 
       ,
       useEffectConfig: {
-        commandName: "FindNotes",
-        commandParams: ["notesId"],  // should be a subset of component.parameterList
-        commandStateVar: "notesList",
+        commandName: "FindMessageCommand",
+        commandParams: ["messageId"],  // should be a subset of component.parameterList
+        commandStateVar: "messageList",
         showIsLoading: false,
-        stateVarIsList: true,
+        stateVarIsList: false,
       }
 
     };
@@ -260,6 +262,11 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
   return (
     <div className={combinedClassName} style={style} {...rest}>
       <PageTitle title="Component Generator" />
+
+      <GenericComponent messageId="abc123" className={styles.content}>
+  <p>Here is a child component</p>
+  </GenericComponent>
+
       <PageSection>
         <form onSubmit={handleGenerateComponent}>
           <Grid>

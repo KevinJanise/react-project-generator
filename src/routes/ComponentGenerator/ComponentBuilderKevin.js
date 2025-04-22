@@ -72,8 +72,7 @@ function ${componentName} ({${componentParams}}) {
   );
 }
 
-export { ${componentName} };
-    `.trim();
+export { ${componentName} };\n`;
 
     directory = componentName;
     fileName = `${componentName}.jsx`;
@@ -101,32 +100,31 @@ export { ${componentName} };
 
     if (stateVarIsList) {
       useEffectOutput = `
-           <>
-             <h2>List of Items</h2>
-             <ul>
-               {${commandStateVar}?.map((item, index) => (
-                 {/* TODO: each key should be unique and unchanging */}
-                 <li key={item?.id ?? index}>{item.description}</li>
-               ))}
-             </ul>
-           </>
-      `;
+         <>
+           <h2>List of Items</h2>
+            <ul>
+             {${commandStateVar}?.map((item, index) => (
+               // TODO: each key should be unique and unchanging
+               <li key={item?.id ?? index}>{item.description}</li>
+             ))}
+           </ul>
+         </>`;
     } else {
       // single line
-      useEffectOutput = `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
+      useEffectOutput = `\n        <p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
     }
 
-    useEffectOutput = `\n        {${commandStateVar} ? (  ${useEffectOutput}
-        ) : (
-           <p className={styles.error}>No data available</p>
-        )}`;
+    useEffectOutput = `\n      {isInitialized && (${commandStateVar} ? (     ${useEffectOutput}
+      ) : (
+        <p className={styles.error}>No data available</p>
+      ))}`;
 
     if (showIsLoading) {
       useEffectOutput = this.buildIsLoadingWrapper(useEffectOutput);
     }
 
     useEffectOutput = `\n\n      {errorMessage && (
-          <p className={styles.error}>{errorMessage}</p>
+        <p className={styles.error}>{errorMessage}</p>
       )}
         ${useEffectOutput}
     `;
@@ -147,6 +145,7 @@ export { ${componentName} };
     const { commandStateVar } = useEffectConfig;
     return (
 `const [${commandStateVar}, set${this.toUpperFirstLetter(commandStateVar)}] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const { execute, isExecuting } = useCommand();`);
   }
@@ -186,6 +185,8 @@ export { ${componentName} };
       } else {
         setErrorMessage("Error retrieving ${commandStateVar}");
       }
+
+      setIsInitialized(true);
     }
 
     init();

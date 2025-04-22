@@ -1,11 +1,12 @@
 import styles from "./GenericComponent.module.css";
+
 import { useState, useEffect } from "react";
-import { LoadingIndicator } from "components/LoadingIndicator";
 import { useCommand } from "hooks/useCommand";
 import { FindMessageCommand } from "services/FindMessageCommand";
 
-function GenericComponent ({messageId, onUpdate, children, className = "", style = {}, ...rest}) {
-  const [message, setMessage] = useState(null);
+function GenericComponent ({messageId, onClick, onEdit, children, className = "", style = {}, ...rest}) {
+  const [messageList, setMessageList] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const { execute, isExecuting } = useCommand();
 
@@ -19,58 +20,55 @@ function GenericComponent ({messageId, onUpdate, children, className = "", style
       if (result.isCanceled) return;
 
       if (result.isSuccess) {
-        setMessage(result.value);
+        setMessageList(result.value);
       } else {
-        setErrorMessage("Error retrieving message");
+        setErrorMessage("Error retrieving messageList");
       }
+
+      setIsInitialized(true);
     }
 
     init();
 
     return () => {
-      // Cleanup logic if needed
+      // TODO Cleanup logic if needed
     };
   }, [execute, messageId]);
-    
-  const handleOnUpdate = () => {
-    // let parent know something happened
-    console.log("notifying parent");
-    onUpdate?.("something happened")
+
+  const handleOnClick = () => {
+    // TODO let parent know something happened
+    console.log("notifying parent - onClick");
+    onClick?.("onClick happened!")
+  };
+
+  const handleOnEdit = () => {
+    // TODO let parent know something happened
+    console.log("notifying parent - onEdit");
+    onEdit?.("onEdit happened!")
   };
 
   const combinedClassName = [styles.genericComponent, className].filter(Boolean).join(" ");
 
   return (
     <div data-testid="generic-component" className={combinedClassName} style={style} {...rest}>
-
-      {/* implement component code */}
-
       <h3>GenericComponent</h3>
 
-      <button type="button" onClick={handleOnUpdate}>Click Me</button>
-      
-      {errorMessage && (
-          <p className={styles.error}>{errorMessage}</p>
-      )}
-        
-      <LoadingIndicator isLoading={isExecuting} renderDelay={250}>
-          {message ? (  
-            <>
-              <h2>List of Items</h2>
-              <ul>
-                {message?.map((item, index) => (
-                  <li key={item?.id ?? index}>{item.description}</li>
-                ))}
-              </ul>
-            </>
-      
-          ) : (
-            <p className={styles.error}>No data available</p>
-          )}
-      </LoadingIndicator>
-    
-      { children }
+      {/* TODO implement component JSX */}
 
+      <button type="button" onClick={handleOnClick}>Click onClick</button>
+      <button type="button" onClick={handleOnEdit}>Click onEdit</button>
+
+      {errorMessage && (
+        <p className={styles.error}>{errorMessage}</p>
+      )}
+
+      {isInitialized && (messageList ? (
+        <p>messageList is: {JSON.stringify(messageList)}</p>
+      ) : (
+        <p className={styles.error}>No data available</p>
+      ))}
+
+      { children }
     </div>
   );
 }
