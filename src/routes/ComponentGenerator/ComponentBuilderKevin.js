@@ -6,56 +6,62 @@ class ComponentBuilderKevin {
   }
 
   /*
- const componentConfig = {
+const componentConfig = {
   component: {
-    name: "NoteDisplay",
-    parameterList: ["noteId", "userId", "userName"],
+    name: "GenericComponent",
+    componentName: "GenericComponent",
+    componentParams: ["messageId"],
     hasChildren: true,
-    hasUseEffect: false,  // shouldInitialize
+    allowsChildren: true
   },
   useEffectConfig: {
-    commandName: "FindNoteCommand",
-    commandParams: ["noteId", "userId"],
-    commandStateVar: "note",
+    commandName: "FindMessageCommand",
+    commandParams: ["messageId"],  // should be a subset of component.parameterList
+    commandStateVar: "message",
     showIsLoading: true,
-    stateVarIsList: true,
+    stateVarIsList: false,
   }
 };
+
+// useEffectConfig can be null
 */
 
   generate() {
     let directory = null;
     let fileName = null;
-    let content = null;
     let componentConfig = this.componentConfig;
     let useEffectConfig = this.useEffectConfig;
 
     console.log("useEffectConfig: ", useEffectConfig);
 
-
-
     // import statements, function/component declaration, state variables, hooks, useEffect, export
-
 
     // Assemble source code
     let componentName = componentConfig.componentName;
     let cssClass = this.toLowerFirstLetter(componentName);
-    let testId =  this.toKebabCase(componentName);;
+    let testId = this.toKebabCase(componentName);
 
     let importStatements = this.buildImports(componentConfig, useEffectConfig);
-    let componentParams = this.buildComponentParams(componentConfig, useEffectConfig);
+    let componentParams = this.buildComponentParams(
+      componentConfig,
+      useEffectConfig
+    );
 
     let useEffectSource = this.buildUseEffect(useEffectConfig);
     let useEffectOutput = this.buildUseEffectOutput(useEffectConfig);
     let useStateSource = this.buildUseState(useEffectConfig);
+    let callbackHandlers = this.buildCallbackHandlers(componentConfig?.callbackFunctions);
 
-    let componentJsxBody = this.buildcomponentJsxBody(componentConfig, useEffectConfig);
+    let componentJsxBody = this.buildcomponentJsxBody(
+      componentConfig,
+      useEffectConfig
+    );
 
-    let componentSourceCode =
-    `${importStatements}
+    let componentSourceCode = `${importStatements}
 
 function ${componentName} ({${componentParams}}) {
   ${useStateSource}${useEffectSource}
+  ${callbackHandlers.jsCode}
 
   const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
 
@@ -63,6 +69,10 @@ function ${componentName} ({${componentParams}}) {
     <div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
 
       {/* implement component code */}
+
+      <h3>${componentName}</h3>
+
+      ${callbackHandlers.jsxCode}
 
       ${useEffectOutput}
       ${componentJsxBody}
@@ -85,12 +95,11 @@ export { ${componentName} };
   }
 
   buildIsLoadingWrapper(content) {
-    let loadingIndicator =
-  `
-        <LoadingIndicator isLoading={isProcessing} renderDelay={250}>
+    let loadingIndicator = `
+        <LoadingIndicator isLoading={isExecuting} renderDelay={250}>
           ${content}
       </LoadingIndicator>
-  `.trim();;
+  `.trim();
 
     return loadingIndicator;
   }
@@ -103,8 +112,7 @@ export { ${componentName} };
     let useEffectOutput = null;
 
     if (stateVarIsList) {
-      useEffectOutput =
-`    <>
+      useEffectOutput = `    <>
           <h2>List of Items</h2>
           <ul>
             {${commandStateVar}?.map((item, index) => (
@@ -113,43 +121,40 @@ export { ${componentName} };
           </ul>
         </>
       `.trim();
-      } else {  // single line
+    } else {
+      // single line
       useEffectOutput = `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
     }
 
-    // conditional output
-    useEffectOutput =
-`
-      {${commandStateVar} && (
-          ${useEffectOutput}
-      )}
-`;
-
-useEffectOutput =
-`
-    {errorMessage && (
-        <p className={styles.errorMessage}>{errorMessage}</p>
-    )}
-
-    ${useEffectOutput}
-`;
+    useEffectOutput = `{${commandStateVar} ? (
+  ${useEffectOutput}
+) : (
+  <p className={styles.error}>No data available</p>
+)}`;
 
     if (showIsLoading) {
       useEffectOutput = this.buildIsLoadingWrapper(useEffectOutput);
     }
 
+    useEffectOutput = `
+        {errorMessage && (
+            <p className={styles.error}>{errorMessage}</p>
+        )}
+
+        ${useEffectOutput}
+    `;
+
     return useEffectOutput;
   }
 
-  buildcomponentJsxBody(componentConfig)  {
+  buildcomponentJsxBody(componentConfig) {
     let children = componentConfig.allowsChildren ? "{ children }" : "";
 
-    let componentJsxBody =
-`
+    let componentJsxBody = `
       ${children}
 `;
 
-      return componentJsxBody;
+    return componentJsxBody;
   }
 
   // roll into buildUseEffect since that is where it is used
@@ -158,20 +163,31 @@ useEffectOutput =
 
     const { commandStateVar } = useEffectConfig;
     return `
-  const [${commandStateVar}, set${this.toUpperFirstLetter(commandStateVar)}] = useState(null);
+  const [${commandStateVar}, set${this.toUpperFirstLetter(
+      commandStateVar
+    )}] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
-  const { execute, isProcessing } = useCommand();
+  const { execute, isExecuting } = useCommand();
     `.trim();
   }
 
   buildUseEffect(useEffectConfig) {
     if (!useEffectConfig) return "";
 
-    const { commandName, commandParams = [], commandStateVar } = useEffectConfig;
+    const {
+      commandName,
+      commandParams = [],
+      commandStateVar,
+    } = useEffectConfig;
 
     const dependencyList = ["execute", ...commandParams];
     const checks = commandParams
-      .map(p => `if (!${p}) { setErrorMessage("${this.toUpperFirstLetter(p)} is required"); return; }`)
+      .map(
+        (p) =>
+          `if (!${p}) { setErrorMessage("${this.toUpperFirstLetter(
+            p
+          )} is required"); return; }`
+      )
       .join("\n      ");
 
     return `
@@ -201,9 +217,16 @@ useEffectOutput =
     `;
   }
 
-
   buildComponentParams(componentConfig) {
-    let paramList = [...componentConfig.componentParams];
+    let paramList = [];
+
+    if (componentConfig.componentParams) {
+      paramList = [...componentConfig.componentParams];
+    }
+
+    if (componentConfig.callbackFunctions) {
+      paramList = [...paramList, ...componentConfig.callbackFunctions];
+    }
 
     if (componentConfig.allowsChildren) {
       paramList.push("children");
@@ -212,7 +235,7 @@ useEffectOutput =
     paramList.push('className = ""');
     paramList.push("style = {}");
 
-    paramList.push("...rest")
+    paramList.push("...rest");
 
     return paramList.filter(Boolean).join(", ");
   }
@@ -222,24 +245,58 @@ useEffectOutput =
     console.log("buildImports useEffectConfig: ", useEffectConfig);
     let imports = [];
 
-    imports.push(`import styles from "${componentConfig.componentName}.module.css";`);
+    imports.push(
+      `import styles from "./${componentConfig.componentName}.module.css";`
+    );
 
     if (useEffectConfig) {
       imports.push('import { useState, useEffect } from "react";');
 
       if (useEffectConfig.showIsLoading) {
-        imports.push('import { LoadingIndicator } from "components/LoadingIndicator";');
+        imports.push(
+          'import { LoadingIndicator } from "components/LoadingIndicator";'
+        );
       }
 
       imports.push('import { useCommand } from "hooks/useCommand";');
-      imports.push(`import { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`);
-
+      imports.push(
+        `import { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`
+      );
     }
 
     return imports.filter(Boolean).join("\n");
   }
 
+  buildCallbackHandlers = (callbacks = []) => {
+    // generate JavaScript code
+    let jsCode = callbacks
+      .map((cb) => cb.trim())
+      .filter(Boolean)
+      .map((cb) => {
+        const handler = `handle${cb.charAt(0).toUpperCase()}${cb.slice(1)}`;
+        return `const ${handler} = () => {
+      // let parent know something happened
+      console.log("notifying parent");
+      ${cb}?.("something happened")
+  };`;
+      })
+      .join("\n\n");
 
+
+      // generate JSX code
+      let jsxCode = callbacks
+      .map((cb) => cb.trim())
+      .filter(Boolean)
+      .map((cb) => {
+        const handler = `handle${cb.charAt(0).toUpperCase()}${cb.slice(1)}`;
+//        return `<button type="button" onClick={() => {${handler}("something happened");}}>Click Me</button>`;
+        return `<button type="button" onClick={${handler}}>Click Me</button>`;
+      })
+      .join("\n\n");
+
+
+      return {jsCode, jsxCode};
+  };
 
   // Utility methods
   toLowerFirstLetter(str) {

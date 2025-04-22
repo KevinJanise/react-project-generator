@@ -3,7 +3,6 @@ import { Routes, Route } from "react-router";
 import { Home } from "routes/Home";
 import {ComponentGenerator} from "routes/ComponentGenerator";
 import {PageGenerator} from "routes/PageGenerator";
-import {GPTComponentGenerator} from "routes/ComponentGenerator";
 
 // Shows creating protected routes
 // https://www.youtube.com/watch?v=eFPvXGZETiY
@@ -13,7 +12,6 @@ function AppRouter() {
     <Routes>
       <Route exact path="/home" element={<Home />} />
       <Route exact path="/componentGenerator" element={<ComponentGenerator />} />
-      <Route exact path="/gptComponentGenerator" element={<GPTComponentGenerator />} />
       <Route exact path="/pageGenerator" element={<PageGenerator />} />
       <Route path="/" element={<Home />} />
     </Routes>

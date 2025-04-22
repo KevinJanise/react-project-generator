@@ -22,3 +22,13 @@
 .checkbox {
   margin-right: 1rem;
 }
+
+.content {
+  background: #ffffff;
+  border-radius: 7px;
+  border: 1px solid #dfdede;
+  color: #32302e;
+  padding: .5rem .25rem 1rem .25rem;
+  padding: 1rem;
+  margin: 1rem;
+}

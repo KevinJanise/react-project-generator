@@ -221,3 +221,7 @@ export function parseParamList(input) {
 
   return normalized;
 }
+
+export const pause = (milliseconds) => {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+};

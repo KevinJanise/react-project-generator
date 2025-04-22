@@ -18,14 +18,12 @@ import { useErrorMessages } from "hooks/useErrorMessages";
 
 import { ComponentBuilder } from "./ComponentBuilder";
 
-import { ComponentBuilderGrok } from "./ComponentBuilderGrok";
-
-//import { generateComponentCode } from "./ComponentBuilderGPT";
-
-import { ComponentBuilderGPT2 } from "./ComponentBuilderGPT2";
-import { ComponentBuilderGemini } from "./ComponentBuilderGemini";
-import { ComponentBuilderClaude } from "./ComponentBuilderClaude";
 import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
+//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGemini";
+//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGPT";
+//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGrok";
+
+import {GenericComponent} from "components/GenericComponent";
 
 
 import * as Utils from "utils/Utils";
@@ -39,23 +37,23 @@ import {
 
 const componentConfig = {
   component: {
-    name: "NoteDisplay",
-    componentName: "NoteDisplay",
-    parameterList: ["noteId", "userId", "userName"],
-    componentParams: ["noteId", "userId", "userName"],
+    name: "GenericComponent",
+    componentName: "GenericComponent",
+    componentParams: ["messageId"],
+    callbackFunctions: ["onUpdate"],
     hasChildren: true,
     allowsChildren: true
   },
   useEffectConfig: {
-    commandName: "FindNoteCommand",
-    commandParams: ["noteId", "userId"],  // should be a subset of component.parameterList
-    commandStateVar: "note",
+    commandName: "FindMessageCommand",
+    commandParams: ["messageId"],  // should be a subset of component.parameterList
+    commandStateVar: "message",
     showIsLoading: true,
-    stateVarIsList: true,
+    stateVarIsList: false,
   }
 };
 
-// componentConfig.useEffectConfig = null;
+ //componentConfig.useEffectConfig = null;
 
 
 function ComponentGenerator({ className = "", style = {}, ...rest }) {
@@ -166,62 +164,6 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     setComponent({ indexFile, componentFile, cssFile });
   };
 
-  const doTestGemini = () => {
-    let bldr = new ComponentBuilderGemini(componentConfig);
-    let c = bldr.generate();
-
-
-     console.log(c);
-     // directory: componentName,
-     // fileName,
-     // content
-
-     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
-  };
-
-  const doTestGrok = () => {
-    let bldr = new ComponentBuilderGrok(componentConfig);
-    let c = bldr.generate();
-
-
-     console.log(c);
-     // directory: componentName,
-     // fileName,
-     // content
-
-     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
-  };
-
-  const doTestGpt = () => {
-    // Example usage:
-
-    let bldr = new ComponentBuilderGPT2(componentConfig);
-    let c = bldr.generate();
-
-
-     console.log(c);
-     // directory: componentName,
-     // fileName,
-     // content
-
-     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
-  };
-
-  const doTestClaude = () => {
-    // Example usage:
-
-    let bldr = new ComponentBuilderClaude(componentConfig);
-    let c = bldr.generate();
-
-
-     console.log(c);
-     // directory: componentName,
-     // fileName,
-     // content
-
-     setComponent({ indexFile: "", componentFile: c, cssFile: "" });
-  };
-
   const doTestKevin = () => {
     // Example usage:
 
@@ -243,7 +185,12 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     <div className={combinedClassName} style={style} {...rest}>
       <PageTitle title="Component Generator" />
       <PageSection>
-        <form onSubmit={handleGenerateComponent}>
+      <GenericComponent messageId="abc123" className={styles.content}>
+        <p>Here is a child component</p>
+        </GenericComponent>
+
+
+      <form onSubmit={handleGenerateComponent}>
           <Grid>
             <Row>
               <Column width="25%">
@@ -392,21 +339,6 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                   Do Test
                 </button>
 
-                <button type="button" className="button" onClick={doTestGemini} style={{ marginRight: "1rem" }}>
-                  Gemini
-                </button>
-
-                <button type="button" className="button" onClick={doTestGrok} style={{ marginRight: "1rem" }}>
-                  Grok
-                </button>
-
-                <button type="button" className="button" onClick={doTestClaude} style={{ marginRight: "1rem" }}>
-                  Claude
-                </button>
-
-                <button type="button" className="button" onClick={doTestGpt} style={{ marginRight: "1rem" }}>
-                  GPT
-                </button>
               </Column>
             </Row>
           </Grid>
@@ -432,6 +364,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
               sourceCode={component[type].content}
             />
           ))}
+
         </PageSection>
       )}
     </div>

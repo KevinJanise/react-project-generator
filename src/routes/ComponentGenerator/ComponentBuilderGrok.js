@@ -1,164 +1,163 @@
-class ComponentBuilderGrok {
+class ComponentBuilder {
   constructor(config) {
     this.config = config;
-    this.component = config.component;
-    this.useEffect = config.useEffectConfig || {};
+    this.componentConfig = config.component;
+    this.useEffectConfig = config.useEffectConfig;
   }
 
   generate() {
-    const { name, parameterList = [], hasChildren } = this.component;
-    const props = this.buildProps(parameterList, hasChildren);
-    const parts = {
-      imports: this.buildImports(),
-      logic: this.buildLogic(),
-      content: this.buildContent(),
-      props: props.join(", "),
-      cssClass: this.toCamelCase(name),
-      testId: this.toKebabCase(name),
-    };
+    const { componentName } = this.componentConfig;
+    const cssClass = this.toLowerFirstLetter(componentName);
+    const testId = this.toKebabCase(componentName);
+
+    const imports = this.buildImports();
+    const params = this.buildComponentParams();
+    const stateAndEffect = this.buildStateAndEffect();
+    const jsxBody = this.buildJsxBody();
+
+    // Use a consistent indent of 2 spaces
+    const indent = "  ";
+    const componentSourceCode = `
+${imports}
+
+function ${componentName}({ ${params} }) {
+${stateAndEffect ? `${indent}${stateAndEffect}` : ""}
+
+${indent}const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
+
+${indent}return (
+${indent}${indent}<div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
+${indent}${indent}${indent}${jsxBody}
+${indent}${indent}</div>
+${indent});
+}
+
+export { ${componentName} };
+    `.trim();
 
     return {
-      directory: name,
-      fileName: `${name}.jsx`,
-      content: this.renderTemplate(parts),
+      directory: componentName,
+      fileName: `${componentName}.jsx`,
+      content: componentSourceCode,
     };
-  }
-
-  buildProps(parameterList, hasChildren) {
-    return [
-      ...parameterList,
-      ...(hasChildren ? ["children"] : []),
-      'className = ""',
-      "style = {}",
-      "...rest",
-    ];
   }
 
   buildImports() {
-    const { name, hasUseEffect } = this.component;
-    const { commandName, showIsLoading } = this.useEffect;
-    const imports = [
-      { condition: true, line: `import styles from "./${name}.module.css";` },
-      { condition: hasUseEffect, line: `import { useState, useEffect } from "react";` },
-      { condition: hasUseEffect, line: `import { useCommand } from "hooks/useCommand";` },
-      {
-        condition: hasUseEffect && commandName,
-        line: `import { ${commandName} } from "services/${commandName}";`,
-      },
-      {
-        condition: hasUseEffect && showIsLoading,
-        line: `import { LoadingIndicator } from "components/LoadingIndicator";`,
-      },
-    ];
+    const { componentName } = this.componentConfig;
+    const { useEffectConfig } = this;
+    const imports = [`import styles from "./${componentName}.module.css";`];
 
-    return imports.filter(({ condition }) => condition).map(({ line }) => line).join("\n");
-  }
-
-  buildLogic() {
-    if (!this.component.hasUseEffect) return "";
-    const { commandStateVar, commandName, commandParams = [] } = this.useEffect;
-
-    return `
-      const [${commandStateVar}, set${this.capitalize(commandStateVar)}] = useState(null);
-      const [errorMessage, setErrorMessage] = useState(null);
-      const { execute, isProcessing } = useCommand();
-
-      useEffect(() => {
-        async function fetchData() {
-          ${this.buildParamChecks(commandParams)}
-          const command = new ${commandName}(${commandParams.join(", ")});
-          const result = await execute(command);
-
-          if (result.isCanceled) return;
-          set${this.capitalize(commandStateVar)}(result.isSuccess ? result.value : null);
-          setErrorMessage(result.isSuccess ? null : "Error retrieving ${commandStateVar}");
-        }
-        fetchData();
-      }, [${["execute", ...commandParams].join(", ")}]);
-    `.trim();
-  }
-
-  buildParamChecks(params) {
-    return params
-      .map((param) => `
-        if (!${param}) {
-          setErrorMessage("${param} is required");
-          return;
-        }
-      `)
-      .join("");
-  }
-
-  buildContent() {
-    const { hasChildren, hasUseEffect } = this.component;
-    const { showIsLoading, commandStateVar, stateVarIsList } = this.useEffect;
-    const childrenBlock = hasChildren ? "{children}" : "";
-    const result = this.buildResult(commandStateVar, stateVarIsList);
-
-    if (hasUseEffect && showIsLoading) {
-      return `
-        <LoadingIndicator isLoading={isProcessing} renderDelay={300}>
-          ${result}
-          ${childrenBlock}
-        </LoadingIndicator>
-      `;
-    }
-    return `${result}\n${childrenBlock}`;
-  }
-
-  buildResult(stateVar, isList) {
-    if (!this.component.hasUseEffect) return "";
-    const content = isList
-      ? `<>
-          <h2>List of Items</h2>
-          <ul>
-            {${stateVar}.map((item) => (
-              <li key={item.id}>{item.description}</li>
-            ))}
-          </ul>
-        </>
-      `
-      : `<p>Var is: {JSON.stringify(${stateVar})}</p>`;
-
-    return `
-      {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
-      {${stateVar} ? (${content}) : (<p>No data available</p>)}
-    `.trim();
-  }
-
-  renderTemplate({ imports, logic, content, props, cssClass, testId }) {
-    const { name } = this.component;
-    return `
-      ${imports}
-
-      function ${name}({ ${props} }) {
-        ${logic}
-
-        const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
-
-        return (
-          <div
-            data-testid="${testId}"
-            className={combinedClassName}
-            style={style}
-            {...rest}
-          >
-            ${content}
-            {/* implement remaining component code */}
-          </div>
-        );
+    if (useEffectConfig) {
+      imports.push('import { useState, useEffect } from "react";');
+      imports.push('import { useCommand } from "hooks/useCommand";');
+      imports.push(`import { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`);
+      if (useEffectConfig.showIsLoading) {
+        imports.push('import { LoadingIndicator } from "components/LoadingIndicator";');
       }
+    }
 
-      export { ${name} };
+    return imports.join("\n");
+  }
+
+  buildComponentParams() {
+    const { componentParams, allowsChildren } = this.componentConfig;
+    const params = [...componentParams];
+
+    if (allowsChildren) params.push("children");
+    params.push('className = ""', "style = {}", "...rest");
+
+    return params.join(", ");
+  }
+
+  buildStateAndEffect() {
+    const { useEffectConfig } = this;
+    if (!useEffectConfig) return "";
+
+    const { commandName, commandParams = [], commandStateVar, stateVarIsList, showIsLoading } = useEffectConfig;
+    const stateVarSetter = `set${this.toUpperFirstLetter(commandStateVar)}`;
+    const dependencyList = ["execute", ...commandParams];
+    const indent = "  ";
+
+    // State declarations
+    const stateCode = `
+const [${commandStateVar}, ${stateVarSetter}] = useState(null);
+const [errorMessage, setErrorMessage] = useState(null);
+const { execute, isExecuting } = useCommand();
     `.trim();
+
+    // useEffect logic
+    const checks = commandParams
+      .map((p) => `${indent}${indent}if (!${p}) { setErrorMessage("${this.toUpperFirstLetter(p)} is required"); return; }`)
+      .join("\n");
+    const effectCode = `
+useEffect(() => {
+${indent}async function init() {
+${checks}
+${indent}${indent}const command = new ${commandName}(${commandParams.join(", ")});
+${indent}${indent}const result = await execute(command);
+
+${indent}${indent}if (result.isCanceled) return;
+${indent}${indent}if (result.isSuccess) {
+${indent}${indent}${indent}${stateVarSetter}(result.value);
+${indent}${indent}} else {
+${indent}${indent}${indent}setErrorMessage("Error retrieving ${commandStateVar}");
+${indent}${indent}}
+${indent}}
+
+${indent}init();
+${indent}return () => {};
+}, [${dependencyList.join(", ")}]);
+    `.trim();
+
+    // Output JSX
+    let outputJsx = stateVarIsList
+      ? `
+<>
+${indent}<h2>List of Items</h2>
+${indent}<ul>
+${indent}${indent}{${commandStateVar}?.map((item, index) => (
+${indent}${indent}${indent}<li key={item?.id ?? index}>{item.description}</li>
+${indent}${indent}))}
+${indent}</ul>
+</>
+      `
+      : `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
+
+    outputJsx = `
+{${commandStateVar} ? (
+${indent}${outputJsx}${indent}) : (
+${indent}<p>No data available</p>
+)}
+    `.trim();
+
+    if (showIsLoading) {
+      outputJsx = `
+<LoadingIndicator isLoading={isExecuting} renderDelay={250}>
+${indent}${outputJsx}
+</LoadingIndicator>
+      `.trim();
+    }
+
+    const outputCode = `
+{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
+${outputJsx}
+    `.trim();
+
+    return [stateCode, effectCode, outputCode].join("\n\n");
   }
 
-  capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  buildJsxBody() {
+    const { allowsChildren } = this.componentConfig;
+    return allowsChildren ? "{children}" : "";
   }
 
-  toCamelCase(str) {
+  // Utility methods
+  toLowerFirstLetter(str) {
     return str.charAt(0).toLowerCase() + str.slice(1);
+  }
+
+  toUpperFirstLetter(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
   toKebabCase(str) {
@@ -166,4 +165,4 @@ class ComponentBuilderGrok {
   }
 }
 
-export { ComponentBuilderGrok };
+export { ComponentBuilder };
