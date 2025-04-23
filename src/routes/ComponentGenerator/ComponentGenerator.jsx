@@ -7,6 +7,7 @@ import { saveAs } from "file-saver";
 import iconZip from "./icon_zip.svg";
 
 import { useState } from "react";
+import { ButtonBar } from "components/ButtonBar";
 import { Grid, Row, Column } from "components/Grid";
 import { LabeledTextInput } from "components/LabeledTextInput";
 import { PageSection } from "components/PageSection";
@@ -20,12 +21,8 @@ import { ComponentBuilder } from "./ComponentBuilder";
 
 import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
 //import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGemini";
-//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGPT";
-//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGrok";
 
 import * as Utils from "utils/Utils";
-
-import { GenericComponent } from "components/GenericComponent";
 
 import {
   generateComponentFile,
@@ -206,11 +203,11 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
         commandParams: Utils.parseParamList(formData.commandParams), // should be a subset of component.parameterList
         commandStateVar: formData.stateVariable,
         showIsLoading: formData.showLoading,
-        stateVarIsList: formData.stateVarIsList
+        stateVarIsList: formData.stateVarIsList,
       };
     }
 
-/*
+    /*
     theComponentConfig = {
       component: {
         componentName: "GenericComponent",
@@ -263,180 +260,197 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
     <div className={combinedClassName} style={style} {...rest}>
       <PageTitle title="Component Generator" />
 
-      <GenericComponent messageId="abc123" className={styles.content}>
-  <p>Here is a child component</p>
-  </GenericComponent>
-
       <PageSection>
         <form onSubmit={handleGenerateComponent}>
-          <Grid>
-            <Row>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Component Name"
-                  name="componentName"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={componentName}
-                  errorMessage={getErrorMessage("componentName")}
-                />
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Parameter Names"
-                  name="parameterNames"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={parameterNames}
-                  errorMessage={getErrorMessage("parameterNames")}
-                />
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label='Callback Functions ("on???")'
-                  name="callbackFunctions"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={callbackFunctions}
-                  errorMessage={getErrorMessage("callbackFunctions")}
-                />
-              </Column>
-              <Column
-                width="25%"
-                valign="center"
-                style={{ paddingTop: "2rem" }}
-              >
-                <label>
-                  <input
-                    className={styles.checkbox}
-                    type="checkbox"
-                    name="hasChildComponents"
-                    checked={hasChildComponents}
+          <PageSection title="Component Params" style={{ margin: "1rem" }}>
+            <Grid>
+              <Row>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Component Name"
+                    name="componentName"
+                    onBlur={trimValue}
                     onChange={handleChange}
+                    value={componentName}
+                    errorMessage={getErrorMessage("componentName")}
                   />
-                  Can have child components
-                </label>
-              </Column>
-
-            </Row>
-
-            <Row>
-              <Column
-                width="25%"
-                valign="center"
-                style={{ paddingTop: "2rem" }}
-              >
-                <label>
-                  <input
-                    className={styles.checkbox}
-                    type="checkbox"
-                    name="doInitialization"
-                    checked={doInitialization}
+                </Column>
+              </Row>
+              <Row>
+                <Column width="50%" valign="bottom">
+                  <LabeledTextInput
+                    label="Parameter Names"
+                    name="parameterNames"
+                    onBlur={trimValue}
                     onChange={handleChange}
+                    value={parameterNames}
+                    errorMessage={getErrorMessage("parameterNames")}
                   />
-                  Do Initialization
-                </label>
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Command Name"
-                  name="commandName"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={commandName}
-                  errorMessage={getErrorMessage("commandName")}
-                />
-              </Column>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="State Variable"
-                  name="stateVariable"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={stateVariable}
-                  errorMessage={getErrorMessage("stateVariable")}
-                />
-              </Column>
-
-              <Column
-                width="25%"
-                valign="center"
-                style={{ paddingTop: "2rem" }}
-              >
-                <label>
-                  <input
-                    className={styles.checkbox}
-                    type="checkbox"
-                    name="showLoading"
-                    checked={showLoading}
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={handleClear}
+                    style={{ marginLeft: "1rem" }}
+                  >
+                    Add Parameter
+                  </button>
+                </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label='Callback Functions ("on???")'
+                    name="callbackFunctions"
+                    onBlur={trimValue}
                     onChange={handleChange}
+                    value={callbackFunctions}
+                    errorMessage={getErrorMessage("callbackFunctions")}
                   />
-                  Show Loading
-                </label>
-              </Column>
-            </Row>
-
-            <Row>
-              <Column width="25%">
-                <LabeledTextInput
-                  label="Command Params"
-                  name="commandParams"
-                  onBlur={trimValue}
-                  onChange={handleChange}
-                  value={commandParams}
-                  errorMessage={getErrorMessage("commandParams")}
-                />
-              </Column>
-            </Row>
-
-            <Row>
-              <Column
-                width="25%"
-                valign="center"
-                style={{ paddingTop: "2rem" }}
-              >
-                <label>
-                  <input
-                    className={styles.checkbox}
-                    type="checkbox"
-                    name="stateVarIsList"
-                    checked={stateVarIsList}
-                    onChange={handleChange}
-                  />
-                  State variable is a list
-                </label>
-              </Column>
-            </Row>
-
-            <Row>
-              <Column width="100%" align="left">
-                <button
-                  type="submit"
-                  className="button"
-                  style={{ marginRight: "1rem" }}
+                </Column>
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
                 >
-                  Generate Component
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  onClick={handleClear}
-                  style={{ marginRight: "1rem" }}
-                >
-                  Clear
-                </button>
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="hasChildComponents"
+                      checked={hasChildComponents}
+                      onChange={handleChange}
+                    />
+                    Can have child components
+                  </label>
+                </Column>
+              </Row>
 
-                <button
-                  type="button"
-                  className="button"
-                  onClick={doTestKevin}
-                  style={{ marginRight: "1rem" }}
+              <Row>
+                <Column width="100%">
+                  <div style={{ background: "#f4f4f4", padding: "1rem", borderRadius: ".5rem" }}>
+                    {`function ${componentName}({ ${parameterNames}, children, onClick, className = "", style = {}, ...rest })`}
+                  </div>
+                </Column>
+              </Row>
+            </Grid>
+          </PageSection>
+
+          <PageSection
+            title="Component Initialization"
+            style={{ margin: "1rem" }}
+          >
+            <Grid>
+              <Row>
+                <Column width="25%" valign="top" style={{ paddingTop: "2rem" }}>
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="doInitialization"
+                      checked={doInitialization}
+                      onChange={handleChange}
+                    />
+                    Do Initialization
+                  </label>
+                </Column>
+              </Row>
+              <Row>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Command Name"
+                    name="commandName"
+                    onBlur={trimValue}
+                    onChange={handleChange}
+                    value={commandName}
+                    errorMessage={getErrorMessage("commandName")}
+                  />
+                </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="Command Params"
+                    name="commandParams"
+                    onBlur={trimValue}
+                    onChange={handleChange}
+                    value={commandParams}
+                    errorMessage={getErrorMessage("commandParams")}
+                  />
+                </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="State Variable"
+                    name="stateVariable"
+                    onBlur={trimValue}
+                    onChange={handleChange}
+                    value={stateVariable}
+                    errorMessage={getErrorMessage("stateVariable")}
+                  />
+                </Column>
+
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
                 >
-                  Kevin
-                </button>
-              </Column>
-            </Row>
-          </Grid>
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="showLoading"
+                      checked={showLoading}
+                      onChange={handleChange}
+                    />
+                    Show Loading
+                  </label>
+                </Column>
+              </Row>
+
+              <Row></Row>
+
+              <Row>
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
+                >
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="stateVarIsList"
+                      checked={stateVarIsList}
+                      onChange={handleChange}
+                    />
+                    State variable is a list
+                  </label>
+                </Column>
+              </Row>
+            </Grid>
+          </PageSection>
+
+          <ButtonBar style={{ marginTop: "1rem" }}>
+            <button
+              type="submit"
+              className="button"
+              style={{ marginRight: "1rem" }}
+            >
+              Generate Component
+            </button>
+            <button
+              type="button"
+              className="button"
+              onClick={handleClear}
+              style={{ marginRight: "1rem" }}
+            >
+              Clear
+            </button>
+
+            <button
+              type="button"
+              className="button"
+              onClick={doTestKevin}
+              style={{ marginRight: "1rem" }}
+            >
+              Kevin
+            </button>
+          </ButtonBar>
         </form>
       </PageSection>
 

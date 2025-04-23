@@ -1,0 +1,50 @@
+.buttonBar {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: auto;
+  margin: .5rem 0 .25rem 1rem;
+}
+
+/* :global(.magButton) says to leave the name as is, don't rename it */
+.buttonBar > button:global(.magButton):not(:last-child) {
+  margin: 0 1rem 1rem 0;
+}
+
+/* if browser has a min width of 760 use these */
+@media (min-width: 768px) {
+  .buttonBar {
+    flex-direction: row;
+  }
+
+  .buttonBar > button:global(.magButton) {
+    width: auto;
+  }
+
+  .buttonBar > button:global(.magButton):not(:last-child),
+  .buttonBar > button {
+    margin: 0 1rem 0 0;
+  }
+}
+
+.leftRight {
+  justify-content: space-between;
+}
+
+.right {
+  justify-content: flex-end;
+}
+
+.left {
+  justify-content: flex-start;
+}
+
+.center {
+  justify-content: center;
+}
+
+.toolbar {
+  margin: 0;
+}
+

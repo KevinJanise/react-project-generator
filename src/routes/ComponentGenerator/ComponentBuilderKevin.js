@@ -61,10 +61,10 @@ const componentConfig = {
 
 function ${componentName} ({${componentParams}}) {
   ${useStateSource}${useEffectSource}${callbackHandlers.jsCode}
-  const combinedClassName = [styles.${cssClass}, className].filter(Boolean).join(" ");
+  const combinedClassNames = [styles.${cssClass}, className].filter(Boolean).join(" ");
 
   return (
-    <div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
+    <div data-testid="${testId}" className={combinedClassNames} style={style} {...rest}>
       <h3>${componentName}</h3>
 
       {/* TODO implement component JSX */}${callbackHandlers.jsxCode}${useEffectOutput}${componentJsxBody}
