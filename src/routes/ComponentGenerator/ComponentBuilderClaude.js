@@ -7,7 +7,9 @@ class ComponentBuilderKevin {
 
   generate() {
     const { componentName } = this.componentConfig;
+
     const componentSourceCode = this.buildComponentSource();
+
     return {
       directory: componentName,
       fileName: `${componentName}.jsx`,
@@ -19,118 +21,133 @@ class ComponentBuilderKevin {
     const { componentName } = this.componentConfig;
     const cssClass = this.formatCase(componentName, 'camel');
     const testId = this.formatCase(componentName, 'kebab');
-    const imports = this.buildImports();
-    const params = this.buildComponentParams();
-    const stateAndHooks = this.buildStateAndHooks();
-    const eventHandlers = this.buildEventHandlers();
-    const innerJsx = this.buildInnerJsx();
-    const logicParts = [];
-    if (stateAndHooks) {
-      logicParts.push(this.indent(stateAndHooks, 2));
-    }
-    if (eventHandlers) {
-      logicParts.push(this.indent(eventHandlers, 2));
-    }
-    const logicCode = logicParts.join('\n');
-    const code = `
-${imports}
 
-function ${componentName}({${params}}) {
-${logicCode}
+    return `${this.buildImports()}
 
+function ${componentName} ({${this.buildComponentParams()}}) {
+  ${this.buildHooksAndState()}
   const combinedClassNames = [styles.${cssClass}, className].filter(Boolean).join(" ");
 
   return (
     <div data-testid="${testId}" className={combinedClassNames} style={style} {...rest}>
-${this.indent(innerJsx, 6)}
+      <h3>${componentName}</h3>
+
+      {/* TODO implement component JSX */}${this.buildCallbackHandlers().jsxCode}${this.buildUseEffectOutput()}${this.buildComponentJsxBody()}
     </div>
   );
 }
 
-export { ${componentName} };
-`;
-    return code.trim();
+export { ${componentName} };\n`;
+  }
+
+  buildHooksAndState() {
+    const useStateCode = this.buildUseState();
+    const useEffectCode = this.buildUseEffect();
+    const callbackHandlers = this.buildCallbackHandlers().jsCode;
+
+    return [useStateCode, useEffectCode, callbackHandlers]
+      .filter(Boolean)
+      .join('');
   }
 
   buildImports() {
     const imports = [];
     const { componentName } = this.componentConfig;
+
     imports.push(`import styles from "./${componentName}.module.css";`);
+
     if (this.useEffectConfig) {
       imports.push('import { useState, useEffect } from "react";');
+
       if (this.useEffectConfig.showIsLoading) {
         imports.push('import { LoadingIndicator } from "components/LoadingIndicator";');
       }
+
       imports.push('import { useCommand } from "hooks/useCommand";');
+
       const { commandName } = this.useEffectConfig;
       imports.push(`import { ${commandName} } from "services/${commandName}";`);
     }
+
     return imports.join('\n');
   }
 
   buildComponentParams() {
     const paramList = [];
     const { componentParams = [], callbackFunctions = [], allowsChildren } = this.componentConfig;
+
     if (componentParams.length) {
       paramList.push(...componentParams);
     }
+
     if (callbackFunctions?.length) {
       paramList.push(...callbackFunctions);
     }
+
     if (allowsChildren) {
       paramList.push('children');
     }
+
+    // Always include these standard props
     paramList.push('className = ""');
     paramList.push('style = {}');
     paramList.push('...rest');
+
     return paramList.join(', ');
   }
 
   buildUseState() {
     if (!this.useEffectConfig?.commandStateVar) return '';
+
     const { commandStateVar, stateVarIsList } = this.useEffectConfig;
     const initialValue = stateVarIsList ? '[]' : 'null';
     const capitalizedVar = this.formatCase(commandStateVar, 'pascal');
+
     return `const [${commandStateVar}, set${capitalizedVar}] = useState(${initialValue});
-const [isInitialized, setIsInitialized] = useState(false);
-const [errorMessage, setErrorMessage] = useState(null);
-const { execute, isExecuting } = useCommand();`;
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const { execute, isExecuting } = useCommand();`;
   }
 
   buildUseEffect() {
     if (!this.useEffectConfig) return '';
+
     const {
       commandName,
       commandParams = [],
       commandStateVar,
     } = this.useEffectConfig;
+
     const dependencyList = ['execute', ...commandParams];
     const paramChecks = this.buildParamChecks(commandParams);
     const capitalizedVar = this.formatCase(commandStateVar, 'pascal');
-    return `\nuseEffect(() => {
-  const init = async () => {
-    ${paramChecks}
 
-    const command = new ${commandName}(${commandParams.join(', ')});
-    const result = await execute(command);
+    return `
 
-    if (result.isCanceled) return;
+  useEffect(() => {
+    const init = async () => {
+      ${paramChecks}
 
-    if (result.isSuccess) {
-      set${capitalizedVar}(result.value);
-    } else {
-      setErrorMessage("Error retrieving ${commandStateVar}");
+      const command = new ${commandName}(${commandParams.join(', ')});
+      const result = await execute(command);
+
+      if (result.isCanceled) return;
+
+      if (result.isSuccess) {
+        set${capitalizedVar}(result.value);
+      } else {
+        setErrorMessage("Error retrieving ${commandStateVar}");
+      }
+
+      setIsInitialized(true);
     }
 
-    setIsInitialized(true);
-  };
+    init();
 
-  init();
-
-  return () => {
-    // TODO Cleanup logic if needed
-  };
-}, [${dependencyList.join(', ')}]);`;
+    return () => {
+      // TODO Cleanup logic if needed
+    };
+  }, [${dependencyList.join(', ')}]);\n`;
   }
 
   buildParamChecks(params) {
@@ -139,97 +156,99 @@ const { execute, isExecuting } = useCommand();`;
         const capitalizedParam = this.formatCase(param, 'pascal');
         return `if (!${param}) { setErrorMessage("${capitalizedParam} is required"); return; }`;
       })
-      .join('\n    ');
+      .join('\n      ');
+  }
+
+  buildUseEffectOutput() {
+    if (!this.useEffectConfig) return '';
+
+    const { commandStateVar, stateVarIsList, showIsLoading } = this.useEffectConfig;
+
+    let output = this.buildDataOutput(commandStateVar, stateVarIsList);
+
+    // Wrap with initialization check
+    output = `\n      {/* isInitialized prevents flashing No data message before search is done */}
+      {isInitialized && (${commandStateVar} ? (     ${output}
+      ) : (
+        <p className={styles.error}>No data available</p>
+      ))}`;
+
+    // Add loading indicator if needed
+    if (showIsLoading) {
+      output = this.wrapWithLoadingIndicator(output);
+    }
+
+    // Add error message handling
+    output = `\n\n      {errorMessage && (
+        <p className={styles.error}>{errorMessage}</p>
+      )}
+        ${output}
+    `;
+
+    return output;
+  }
+
+  buildDataOutput(stateVar, isList) {
+    if (isList) {
+      return `
+        <>
+           <h2>List of Items</h2>
+           <ul>
+            {${stateVar}?.map((item, index) => (
+              // TODO: Each key should be unique and unchanging, ideally from your data
+              <li key={item?.id ?? index}>{item.description}</li>
+            ))}
+          </ul>
+        </>`;
+    } else {
+      return `\n        <p>${stateVar} is: {JSON.stringify(${stateVar})}</p>`;
+    }
+  }
+
+  wrapWithLoadingIndicator(content) {
+    return `
+      <LoadingIndicator isLoading={isExecuting} renderDelay={250}>${this.indent(content, 2)}
+      </LoadingIndicator>`;
+  }
+
+  buildComponentJsxBody() {
+    return this.componentConfig.allowsChildren ? `\n\n      { children }` : '';
   }
 
   buildCallbackHandlers() {
     const callbacks = this.componentConfig?.callbackFunctions || [];
+
+    // generate JavaScript code
     const jsCode = callbacks
       .map(cb => cb.trim())
       .filter(Boolean)
       .map(cb => {
         const handler = `handle${this.formatCase(cb, 'pascal')}`;
-        return `\nconst ${handler} = () => {
-  // TODO let parent know something happened
-  console.log("notifying parent - ${cb}");
-  ${cb}?.("${cb} happened!");
-};`;
+        return `\n  const ${handler} = () => {
+    // TODO let parent know something happened
+    console.log("notifying parent - ${cb}");
+    ${cb}?.("${cb} happened!")
+  };`;
       })
       .join('\n');
+
+    // generate JSX code
     const jsxCode = callbacks
       .map(cb => cb.trim())
       .filter(Boolean)
       .map(cb => {
         const handler = `handle${this.formatCase(cb, 'pascal')}`;
-        return `<button type="button" onClick={${handler}}>Click ${cb}</button>`;
+        return `\n      <button type="button" onClick={${handler}}>Click ${cb}</button>`;
       })
-      .join('\n');
+      .join('');
+
     return {
-      jsCode: jsCode ? jsCode : '',
-      jsxCode: jsxCode ? jsxCode : ''
+      jsCode: jsCode ? `${jsCode}\n` : '',
+      jsxCode: jsxCode ? `\n${jsxCode}` : ''
     };
   }
 
-  buildStateAndHooks() {
-    const useStateCode = this.buildUseState();
-    const useEffectCode = this.buildUseEffect();
-    return [useStateCode, useEffectCode].filter(Boolean).join('\n');
-  }
-
-  buildEventHandlers() {
-    return this.buildCallbackHandlers().jsCode;
-  }
-
-  buildDataDisplay() {
-    if (!this.useEffectConfig) return '';
-    const { commandStateVar, stateVarIsList, showIsLoading } = this.useEffectConfig;
-
-    const dataOutput = stateVarIsList
-      ? `<ul>
-  {${commandStateVar}?.map((item, index) => (
-    // TODO: Each key should be unique and unchanging, ideally from your data
-    <li key={item?.id ?? index}>{item.description}</li>
-  ))}
-</ul>`
-      : `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
-
-    let mainContent = `{isInitialized && (${commandStateVar} ? (
-  ${dataOutput}
-) : (
-  <p className={styles.error}>No data available</p>
-))}`;
-
-//mainContent = this.indent(mainContent, 2);
-
-    const wrappedContent = showIsLoading
-      ? `\n<LoadingIndicator isLoading={isExecuting} renderDelay={250}>
-  ${mainContent}
-</LoadingIndicator>`
-      : mainContent;
-    const errorPart = `\n{errorMessage && (
-  <p className={styles.error}>{errorMessage}</p>
-)}`;
-    return `${errorPart}\n${wrappedContent}`;
-  }
-
-  buildInnerJsx() {
-    const parts = [];
-    parts.push(`<h3>${this.componentConfig.componentName}</h3>`);
-    parts.push(`\n{/* TODO implement component JSX */}`);
-    const callbackButtons = this.buildCallbackHandlers().jsxCode;
-    if (callbackButtons) {
-      parts.push(callbackButtons);
-    }
-    const dataDisplay = this.buildDataDisplay();
-    if (dataDisplay) {
-      parts.push(dataDisplay);
-    }
-    if (this.componentConfig.allowsChildren) {
-      parts.push('\n{children}');
-    }
-    return parts.join('\n');
-  }
-
+  // Unified utility method for different case formats
   formatCase(str, format) {
     switch (format) {
       case 'camel':

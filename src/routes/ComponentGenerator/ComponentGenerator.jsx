@@ -17,10 +17,14 @@ import { CodeDisplay } from "components/CodeDisplay";
 import { useForm } from "hooks/useForm";
 import { useErrorMessages } from "hooks/useErrorMessages";
 
-import { ComponentBuilder } from "./ComponentBuilder";
+//import { ComponentBuilder } from "./ComponentBuilder";
 
-import { ComponentBuilderKevin } from "./ComponentBuilderKevin";
-//import { ComponentBuilder as ComponentBuilderKevin } from "./ComponentBuilderGemini";
+import { ComponentBuilderKevin } from "./ComponentBuilderKevin";  // standard
+//import { ComponentBuilderKevin } from "./ComponentBuilderGPT";  // cleaned up Claude
+//import { ComponentBuilderKevin } from "./ComponentBuilderGemini";
+//import { ComponentBuilderKevin } from "./ComponentBuilderDeepSeek";
+// import { ComponentBuilderKevin } from "./ComponentBuilderClaude";  // best so far
+ // import { ComponentBuilderKevin } from "./ComponentBuilderGrok";
 
 import * as Utils from "utils/Utils";
 
@@ -110,7 +114,8 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
 
   const handleGenerateComponent = (event) => {
     event.preventDefault();
-    generateComponentPieces();
+    //generateComponentPieces();
+    doTestKevin();
   };
 
   const handleClear = () => {
@@ -207,7 +212,7 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
       };
     }
 
-    /*
+
     theComponentConfig = {
       component: {
         componentName: "GenericComponent",
@@ -221,11 +226,11 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
         commandName: "FindMessageCommand",
         commandParams: ["messageId"],  // should be a subset of component.parameterList
         commandStateVar: "messageList",
-        showIsLoading: false,
+        showIsLoading: true,
         stateVarIsList: true,
       }
     };
-*/
+
 
     return theComponentConfig;
   };

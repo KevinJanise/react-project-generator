@@ -1,5 +1,4 @@
 import styles from "./GenericComponent.module.css";
-
 import { useState, useEffect } from "react";
 import { useCommand } from "hooks/useCommand";
 import { FindMessageCommand } from "services/FindMessageCommand";
@@ -47,10 +46,10 @@ function GenericComponent ({messageId, onClick, onEdit, children, className = ""
     onEdit?.("onEdit happened!")
   };
 
-  const combinedClassName = [styles.genericComponent, className].filter(Boolean).join(" ");
+  const combinedClassNames = [styles.genericComponent, className].filter(Boolean).join(" ");
 
   return (
-    <div data-testid="generic-component" className={combinedClassName} style={style} {...rest}>
+    <div data-testid="generic-component" className={combinedClassNames} style={style} {...rest}>
       <h3>GenericComponent</h3>
 
       {/* TODO implement component JSX */}

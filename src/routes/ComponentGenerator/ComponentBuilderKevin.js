@@ -5,27 +5,6 @@ class ComponentBuilderKevin {
     this.useEffectConfig = config.useEffectConfig;
   }
 
-  /*
-const componentConfig = {
-  component: {
-    name: "GenericComponent",
-    componentName: "GenericComponent",
-    componentParams: ["messageId"],
-    hasChildren: true,
-    allowsChildren: true
-  },
-  useEffectConfig: {
-    commandName: "FindMessageCommand",
-    commandParams: ["messageId"],  // should be a subset of component.parameterList
-    commandStateVar: "message",
-    showIsLoading: true,
-    stateVarIsList: false,
-  }
-};
-
-// useEffectConfig can be null
-*/
-
   generate() {
     let directory = null;
     let fileName = null;

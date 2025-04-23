@@ -1,165 +1,209 @@
-class ComponentBuilder {
+class ComponentBuilderKevin {
   constructor(config) {
     this.config = config;
-    this.component = config.component;
-    this.effect = config.useEffectConfig;
+    this.componentConfig = config.component;
+    this.useEffectConfig = config.useEffectConfig;
+  }
+
+
+  formatOutput(code) {
+    const cleaned = code
+      .split('\n')
+      .map(line => line.trimEnd())
+      .reduce((acc, line) => {
+        if (line === '' && acc[acc.length - 1] === '') return acc;
+        return [...acc, line];
+      }, [])
+      .join('\n');
+
+    const spaced = cleaned
+      // Ensure a blank line after all imports
+      .replace(/(import\s+.*?;)(?!\n\n)/g, '$1\n')
+      // Ensure a blank line before the component function
+      .replace(/(?:^|\n)(function\s+\w+\s*\(.*?\)\s*{)/g, '\n$1')
+      // Add blank line before return if not already present
+      .replace(/([^\n])(\n\s*return\s*\()/g, '$1\n$2')
+      // Remove excess line after <h3> or errorMessage
+      .replace(/(<\/h3>|{errorMessage})\n{2,}/g, '$1\n')
+      // Collapse 2+ blank lines to just one
+      .replace(/\n{3,}/g, '\n\n');
+
+    return spaced.trim() + '\n';
   }
 
   generate() {
-    const { componentName } = this.component;
-    const imports = this.buildImports();
-    const params = this.buildParams();
-    const state = this.buildState();
-    const useEffect = this.buildEffect();
-    const output = this.buildOutput();
-    const body = this.component.allowsChildren ? "{ children }" : "";
-    const className = this.toLowerFirst(componentName);
-    const testId = this.toKebabCase(componentName);
+    const { componentName } = this.componentConfig;
 
-    const content = `
-${imports}
+    return {
+      directory: componentName,
+      fileName: `${componentName}.jsx`,
+      content: this.formatOutput(this.buildComponentSource()),
+    };
+  }
 
-function ${componentName}({ ${params} }) {
-  ${state}
-  ${useEffect}
+  buildComponentSource() {
+    const { componentName } = this.componentConfig;
+    const cssClass = this.formatCase(componentName, 'camel');
+    const testId = this.formatCase(componentName, 'kebab');
 
-  const combinedClassName = [styles.${className}, className].filter(Boolean).join(" ");
+    return `${this.generateImports()}
+
+function ${componentName} ({ ${this.generateProps()} }) {
+  ${this.generateStateHooks()}
+  ${this.generateEffectHook()}
+  ${this.generateHandlers().js}
+
+  const combinedClassNames = [styles.${cssClass}, className].filter(Boolean).join(" ");
 
   return (
-    <div data-testid="${testId}" className={combinedClassName} style={style} {...rest}>
-      {/* implement component code */}
-      ${output}
-      ${body}
+    <div data-testid="${testId}" className={combinedClassNames} style={style} {...rest}>
+      <h3>${componentName}</h3>${this.generateHandlers().jsx}
+      ${this.generateUseEffectJSX()}
+      ${this.generateChildren()}
     </div>
   );
 }
 
 export { ${componentName} };
-    `.trim();
-
-    return {
-      directory: componentName,
-      fileName: `${componentName}.jsx`,
-      content
-    };
+`;
   }
 
-  buildImports() {
-    const { componentName } = this.component;
-    const lines = [`import styles from "./${componentName}.module.css";`];
-
-    if (this.effect) {
-      lines.push('import { useState, useEffect } from "react";');
-      lines.push('import { useCommand } from "hooks/useCommand";');
-      lines.push(`import { ${this.effect.commandName} } from "services/${this.effect.commandName}";`);
-
-      if (this.effect.showIsLoading) {
-        lines.push('import { LoadingIndicator } from "components/LoadingIndicator";');
+  generateImports() {
+    const imports = [`import styles from "./${this.componentConfig.componentName}.module.css";`];
+    if (this.useEffectConfig) {
+      imports.push(`import { useState, useEffect } from "react";`);
+      imports.push(`import { useCommand } from "hooks/useCommand";`);
+      if (this.useEffectConfig.showIsLoading) {
+        imports.push(`import { LoadingIndicator } from "components/LoadingIndicator";`);
       }
+      imports.push(`import { ${this.useEffectConfig.commandName} } from "services/${this.useEffectConfig.commandName}";`);
     }
-
-    return lines.join("\n");
+    return imports.join("\n");
   }
 
-  buildParams() {
-    const { componentParams = [], allowsChildren } = this.component;
+  generateProps() {
+    const { componentParams = [], callbackFunctions = [], allowsChildren } = this.componentConfig;
     return [
       ...componentParams,
-      allowsChildren && "children",
+      ...callbackFunctions,
+      ...(allowsChildren ? ['children'] : []),
       'className = ""',
-      "style = {}",
-      "...rest"
-    ].filter(Boolean).join(", ");
+      'style = {}',
+      '...rest'
+    ].join(', ');
   }
 
-  buildState() {
-    if (!this.effect) return "";
-
-    const varName = this.effect.commandStateVar;
-    const upper = this.toUpperFirst(varName);
-
-    return [
-      `const [${varName}, set${upper}] = useState(null);`,
-      `const [errorMessage, setErrorMessage] = useState(null);`,
-      `const { execute, isExecuting } = useCommand();`
-    ].join("\n");
+  generateStateHooks() {
+    if (!this.useEffectConfig) return '';
+    const { commandStateVar, stateVarIsList } = this.useEffectConfig;
+    const capitalizedVar = this.formatCase(commandStateVar, 'pascal');
+    return `
+  const [${commandStateVar}, set${capitalizedVar}] = useState(${stateVarIsList ? '[]' : 'null'});
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const { execute, isExecuting } = useCommand();`;
   }
 
-  buildEffect() {
-    if (!this.effect) return "";
-
-    const { commandName, commandParams = [], commandStateVar } = this.effect;
-    const setter = `set${this.toUpperFirst(commandStateVar)}`;
-    const checks = commandParams.map(p => `if (!${p}) return setErrorMessage("${this.toUpperFirst(p)} is required");`).join("\n      ");
+  generateEffectHook() {
+    if (!this.useEffectConfig) return '';
+    const { commandName, commandParams, commandStateVar } = this.useEffectConfig;
+    const capitalizedVar = this.formatCase(commandStateVar, 'pascal');
+    const paramChecks = commandParams.map(param =>
+      `if (!${param}) { setErrorMessage("${this.formatCase(param, 'pascal')} is required"); return; }`
+    ).join("\n      ");
 
     return `
   useEffect(() => {
-    async function init() {
-      ${checks}
-      const command = new ${commandName}(${commandParams.join(", ")});
+    const init = async () => {
+      ${paramChecks}
+      const command = new ${commandName}(${commandParams.join(', ')});
       const result = await execute(command);
+
       if (result.isCanceled) return;
-      result.isSuccess
-        ? ${setter}(result.value)
-        : setErrorMessage("Error retrieving ${commandStateVar}");
-    }
+
+      if (result.isSuccess) {
+        set${capitalizedVar}(result.value);
+      } else {
+        setErrorMessage("Error retrieving ${commandStateVar}");
+      }
+
+      setIsInitialized(true);
+    };
     init();
-  }, [execute, ${commandParams.join(", ")}]);
-    `.trim();
+    return () => {};
+  }, [execute, ${commandParams.join(', ')}]);`;
   }
 
-  buildOutput() {
-    if (!this.effect) return "";
+  generateUseEffectJSX() {
+    if (!this.useEffectConfig) return '';
+    const { commandStateVar, stateVarIsList, showIsLoading } = this.useEffectConfig;
 
-    const { commandStateVar, stateVarIsList, showIsLoading } = this.effect;
-
-    const content = stateVarIsList
+    const renderData = stateVarIsList
       ? `
-<>
-  <h2>List of Items</h2>
-  <ul>
-    {${commandStateVar}?.map((item, index) => (
-      <li key={item?.id ?? index}>{item.description}</li>
-    ))}
-  </ul>
-</>`
+        <>
+          <h2>List of Items</h2>
+          <ul>
+            {${commandStateVar}?.map((item, index) => (
+              <li key={item?.id ?? index}>{item.description}</li>
+            ))}
+          </ul>
+        </>`
       : `<p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
 
-    const wrapped = `
-{${commandStateVar} ? (
-  ${content}
-) : (
-  <p>No data available</p>
-)}
-    `.trim();
+    const wrappedData = `
+      {/* isInitialized prevents flashing No data message before search is done */}
+      {isInitialized && (${commandStateVar} ? (${renderData}) : (
+        <p className={styles.error}>No data available</p>
+      ))}`;
 
     const loadingWrapped = showIsLoading
-      ? `
-<LoadingIndicator isLoading={isExecuting} renderDelay={250}>
-  ${wrapped}
-</LoadingIndicator>
-      `.trim()
-      : wrapped;
+      ? `<LoadingIndicator isLoading={isExecuting} renderDelay={250}>
+        ${this.indent(wrappedData, 2)}
+      </LoadingIndicator>`
+      : wrappedData;
 
     return `
-{errorMessage && (
-  <p className={styles.errorMessage}>{errorMessage}</p>
-)}
-${loadingWrapped}
-    `.trim();
+      {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+      ${loadingWrapped}`;
   }
 
-  toLowerFirst(str) {
-    return str[0].toLowerCase() + str.slice(1);
+  generateHandlers() {
+    const callbacks = this.componentConfig.callbackFunctions || [];
+    if (!callbacks.length) return { js: '', jsx: '' };
+
+    const js = callbacks.map(cb => {
+      const handler = `handle${this.formatCase(cb, 'pascal')}`;
+      return `const ${handler} = () => {
+    console.log("notifying parent - ${cb}");
+    ${cb}?.("${cb} happened!");
+  };`;
+    }).join('\n');
+
+    const jsx = callbacks.map(cb => {
+      const handler = `handle${this.formatCase(cb, 'pascal')}`;
+      return `<button type="button" onClick={${handler}}>Click ${cb}</button>`;
+    }).join('\n      ');
+
+    return { js: js ? `\n  ${js}` : '', jsx: jsx ? `\n      ${jsx}` : '' };
   }
 
-  toUpperFirst(str) {
-    return str[0].toUpperCase() + str.slice(1);
+  generateChildren() {
+    return this.componentConfig.allowsChildren ? '\n      {children}' : '';
   }
 
-  toKebabCase(str) {
-    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  formatCase(str, format) {
+    switch (format) {
+      case 'camel': return str[0].toLowerCase() + str.slice(1);
+      case 'pascal': return str[0].toUpperCase() + str.slice(1);
+      case 'kebab': return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+      default: return str;
+    }
+  }
+
+  indent(str, spaces) {
+    const pad = ' '.repeat(spaces);
+    return str.split('\n').map(line => pad + line).join('\n');
   }
 }
 
-export {ComponentBuilder};
+export { ComponentBuilderKevin };
