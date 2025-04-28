@@ -6,12 +6,15 @@ import { Grid, Row, Column } from "components/Grid";
 import { LabeledTextInput } from "components/LabeledTextInput";
 import { PageSection } from "components/PageSection";
 import { PageTitle } from "components/PageTitle";
+import { ButtonBar } from "components/ButtonBar";
 import { CodeDisplay } from "components/CodeDisplay";
 
 import { useErrorMessages } from "hooks/useErrorMessages";
 import { useForm } from "hooks/useForm";
 
 import iconZip from "./icon_zip.svg";
+
+import { PageBuilder } from "./PageBuilder";
 
 import * as FormatUtils from "utils/FormatUtils";
 
@@ -27,14 +30,19 @@ function PageGenerator({
   const [pageCode, setPageCode] = useState("");
   const [routerCode, setRouterCode] = useState("");
   const [menuBarCode, setMenuBarCode] = useState("");
+  const [indexCode, setIndexCode] = useState("");
 
   let initialFormState = {
     pageName: "",
     pageTitle: "",
+    callbackFunctions: "",
     hasPathParameter: false,
+    hasChildComponents: false,
     pathParameterName: "",
     commandName: "",
-    commandPropertyName: ""
+    commandParams: "",
+    commandPropertyName: "",
+    stateVarIsList: false,
   };
   const { formData, resetForm, handleChange, setFormData, trimValue } =
     useForm(initialFormState);
@@ -106,7 +114,11 @@ function PageGenerator({
     theCommandPropertyName
   ) => {
     console.log("handleGeneratePage");
-    let useEffectCode = generateUseEffect(commandName, thePathParameterName, theCommandPropertyName);
+    let useEffectCode = generateUseEffect(
+      commandName,
+      thePathParameterName,
+      theCommandPropertyName
+    );
 
     let componentTemplate = `import styles from "./${thePageName}.module.css";
 
@@ -126,7 +138,9 @@ function PageGenerator({
 
   const {${thePathParameterName}} = useParams();  // get ${thePathParameterName} from URL
   const { execute, isExecuting, cancel } = useCommand();
-  const [${theCommandPropertyName}, set${FormatUtils.toUpperFirstLetter(theCommandPropertyName)}] = useState(null);
+  const [${theCommandPropertyName}, set${FormatUtils.toUpperFirstLetter(
+      theCommandPropertyName
+    )}] = useState(null);
 
   const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
     thePageName
@@ -183,7 +197,37 @@ function PageGenerator({
     setRouterCode(
       generateRouterCode(formData.pageName, formData.pathParameterName)
     );
+
     setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
+
+    let theComponentConfig = {
+      component: {
+        componentName: "Coverage",
+        pageTitle: "Coverage Setup",
+        componentParams: ["accountId"],
+        callbackFunctions: ["Edit"], // just descriptive part of name such as Edit, UpdateUser
+        allowsChildren: true,
+        pathParameterName: "theAccountId",
+      },
+
+      useEffectConfig: {
+        commandName: "FindCoverage",
+        commandParams: ["accountId"], // should be a subset of component.parameterList
+        commandStateVar: "coverageList",
+        showIsLoading: true,
+        stateVarIsList: true,
+      },
+    };
+
+    let pageBuilder = new PageBuilder(theComponentConfig);
+    let componentFile = pageBuilder.generate();
+    setPageCode(componentFile);
+
+    setRouterCode(pageBuilder.generateRouterCode(theComponentConfig.component));
+    setMenuBarCode(pageBuilder.generateMenuBarCode(theComponentConfig.component));
+    setIndexCode(pageBuilder.generateIndexCode(theComponentConfig.component));
+
+    /*
     setPageCode(
       generatePageCode(
         formData.pageName,
@@ -193,6 +237,7 @@ function PageGenerator({
         formData.commandPropertyName
       )
     );
+    */
   };
 
   const handleClear = () => {
@@ -236,6 +281,16 @@ function PageGenerator({
                     errorMessage={getErrorMessage("pageTitle")}
                   />
                 </Column>
+                <Column width="25%">
+                  <LabeledTextInput
+                    label='Callback Functions ("handle???")'
+                    name="callbackFunctions"
+                    onBlur={trimValue}
+                    onChange={handleChange}
+                    value={formData.callbackFunctions}
+                    errorMessage={getErrorMessage("callbackFunctions")}
+                  />
+                </Column>
               </Row>
             </Grid>
           </PageSection>
@@ -248,16 +303,15 @@ function PageGenerator({
                   valign="center"
                   style={{ paddingTop: "2rem" }}
                 >
-                  <input
-                    className={styles.checkbox}
-                    id="hasPathParameter"
-                    type="checkbox"
-                    onChange={handleChange}
-                    name="hasPathParameter"
-                    checked={formData.hasPathParameter}
-                  />
-                  <label htmlFor="hasPathParameter">
-                    Initialize page using path parameter
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="hasPathParameter"
+                      checked={formData.hasPathParameter}
+                      onChange={handleChange}
+                    />
+                    Has path parameter
                   </label>
                 </Column>
                 <Column width="25%">
@@ -272,6 +326,9 @@ function PageGenerator({
                     errorMessage={getErrorMessage("pathParameterName")}
                   />
                 </Column>
+              </Row>
+
+              <Row>
                 <Column width="25%">
                   <LabeledTextInput
                     label="Command Name"
@@ -284,12 +341,20 @@ function PageGenerator({
                     errorMessage={getErrorMessage("commandName")}
                   />
                 </Column>
-              </Row>
-
-              <Row>
-              <Column width="25%">
+                <Column width="25%" valign="bottom">
                   <LabeledTextInput
-                    label="Property name to hold Command result"
+                    label="Command Params"
+                    name="commandParams"
+                    onBlur={trimValue}
+                    onChange={handleChange}
+                    value={formData.commandParams}
+                    errorMessage={getErrorMessage("commandParams")}
+                  />
+                </Column>
+
+                <Column width="25%">
+                  <LabeledTextInput
+                    label="State Variable"
                     name="commandPropertyName"
                     onBlur={trimValue}
                     placeholder=""
@@ -300,27 +365,27 @@ function PageGenerator({
                   />
                 </Column>
 
-              </Row>
-
-              <Row>
-                <Column width="50%">
-                  <p>
-                    Will child components be passed to this component. For
-                    example:
-                  </p>
-                  <pre>
-                    <code>
-                      &lt;MyComponent&gt; &lt;p&gt;Here is a child
-                      component&lt;/p&gt; &lt;/MyComponent&gt;
-                    </code>
-                  </pre>
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
+                >
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="stateVarIsList"
+                      checked={formData.stateVarIsList}
+                      onChange={handleChange}
+                    />
+                    State variable is a list
+                  </label>
                 </Column>
               </Row>
             </Grid>
           </PageSection>
-          <Grid>
-            <Row>
-              <Column width="auto" align="left">
+
+          <ButtonBar style={{ marginTop: "1rem" }}>
                 <button
                   className="button"
                   type="submit"
@@ -337,14 +402,12 @@ function PageGenerator({
                 >
                   Clear
                 </button>
-              </Column>
-            </Row>
-          </Grid>
+                </ButtonBar>
         </form>
       </PageSection>
 
       {pageCode && (
-        <PageSection title={`Code for ${pageName} Component`}>
+        <PageSection title={`Code for Page - ${pageName}`} style={{marginTop: "1rem"}}>
           <img
             src={iconZip}
             className={styles.zipIcon}
@@ -359,19 +422,19 @@ function PageGenerator({
           />
 
           <CodeDisplay
-            title={`src/routes/${pageName}/${pageName}.jsx`}
-            sourceCode={pageCode}
+            title={ `src/routes/${pageCode.directory}/${pageCode.fileName}`}
+            sourceCode={pageCode.content}
           />
 
           <CodeDisplay
-            title={`src/routes/${pageName}/index.js`}
-            sourceCode={`export { ${pageName} } from './${pageName}';`}
+            title={`src/routes/${pageCode.directory}/index.js`}
+            sourceCode={indexCode}
           />
 
           <CodeDisplay
-            title={`src/routes/${pageName}/${pageName}.module.css`}
+            title={`src/routes/${pageCode.directory}/${pageCode.directory}.module.css`}
             sourceCode={`.${FormatUtils.toLowerFirstLetter(
-              pageName
+              pageCode.directory
             )}\n  {\n     /* add CSS */ \n  }`}
           />
         </PageSection>

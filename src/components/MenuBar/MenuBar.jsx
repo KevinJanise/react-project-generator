@@ -17,10 +17,6 @@ function MenuBar({ children, className = "", style = {}, ...rest }) {
           Generate Component
         </Link>
 
-        <Link to="/gptComponentGenerator" className={`${styles.menuItem} underlineFromCenter`}>
-          GPT Generate Component
-        </Link>
-
         <Link to="/pageGenerator" className={`${styles.menuItem} underlineFromCenter`}>
           Generate Page
         </Link>

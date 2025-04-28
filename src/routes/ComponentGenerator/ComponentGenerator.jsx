@@ -19,12 +19,12 @@ import { useErrorMessages } from "hooks/useErrorMessages";
 
 //import { ComponentBuilder } from "./ComponentBuilder";
 
-import { ComponentBuilderKevin } from "./ComponentBuilderKevin";  // standard
+import { ComponentBuilderKevin } from "./ComponentBuilderKevin"; // standard
 //import { ComponentBuilderKevin } from "./ComponentBuilderGPT";  // cleaned up Claude
 //import { ComponentBuilderKevin } from "./ComponentBuilderGemini";
 //import { ComponentBuilderKevin } from "./ComponentBuilderDeepSeek";
 // import { ComponentBuilderKevin } from "./ComponentBuilderClaude";  // best so far
- // import { ComponentBuilderKevin } from "./ComponentBuilderGrok";
+// import { ComponentBuilderKevin } from "./ComponentBuilderGrok";
 
 import * as Utils from "utils/Utils";
 
@@ -212,25 +212,22 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
       };
     }
 
-
     theComponentConfig = {
       component: {
         componentName: "GenericComponent",
         componentParams: ["messageId"],
         callbackFunctions: ["onClick", "onEdit"],
         allowsChildren: true,
-      }
+      },
 
-      ,
       useEffectConfig: {
         commandName: "FindMessageCommand",
-        commandParams: ["messageId"],  // should be a subset of component.parameterList
+        commandParams: ["messageId"], // should be a subset of component.parameterList
         commandStateVar: "messageList",
         showIsLoading: true,
         stateVarIsList: true,
-      }
+      },
     };
-
 
     return theComponentConfig;
   };
@@ -280,9 +277,8 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                     errorMessage={getErrorMessage("componentName")}
                   />
                 </Column>
-              </Row>
-              <Row>
-                <Column width="50%" valign="bottom">
+
+                <Column width="25%" valign="bottom">
                   <LabeledTextInput
                     label="Parameter Names"
                     name="parameterNames"
@@ -291,15 +287,8 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                     value={parameterNames}
                     errorMessage={getErrorMessage("parameterNames")}
                   />
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={handleClear}
-                    style={{ marginLeft: "1rem" }}
-                  >
-                    Add Parameter
-                  </button>
                 </Column>
+
                 <Column width="25%">
                   <LabeledTextInput
                     label='Callback Functions ("on???")'
@@ -310,6 +299,9 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                     errorMessage={getErrorMessage("callbackFunctions")}
                   />
                 </Column>
+              </Row>
+
+              <Row>
                 <Column
                   width="25%"
                   valign="center"
@@ -330,7 +322,13 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
 
               <Row>
                 <Column width="100%">
-                  <div style={{ background: "#f4f4f4", padding: "1rem", borderRadius: ".5rem" }}>
+                  <div
+                    style={{
+                      background: "#f4f4f4",
+                      padding: "1rem",
+                      borderRadius: ".5rem",
+                    }}
+                  >
                     {`function ${componentName}({ ${parameterNames}, children, onClick, className = "", style = {}, ...rest })`}
                   </div>
                 </Column>
@@ -388,28 +386,6 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                     errorMessage={getErrorMessage("stateVariable")}
                   />
                 </Column>
-
-                <Column
-                  width="25%"
-                  valign="center"
-                  style={{ paddingTop: "2rem" }}
-                >
-                  <label>
-                    <input
-                      className={styles.checkbox}
-                      type="checkbox"
-                      name="showLoading"
-                      checked={showLoading}
-                      onChange={handleChange}
-                    />
-                    Show Loading
-                  </label>
-                </Column>
-              </Row>
-
-              <Row></Row>
-
-              <Row>
                 <Column
                   width="25%"
                   valign="center"
@@ -424,6 +400,25 @@ function ComponentGenerator({ className = "", style = {}, ...rest }) {
                       onChange={handleChange}
                     />
                     State variable is a list
+                  </label>
+                </Column>
+              </Row>
+
+              <Row>
+                <Column
+                  width="25%"
+                  valign="center"
+                  style={{ paddingTop: "2rem" }}
+                >
+                  <label>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      name="showLoading"
+                      checked={showLoading}
+                      onChange={handleChange}
+                    />
+                    Show Loading Indicator
                   </label>
                 </Column>
               </Row>
