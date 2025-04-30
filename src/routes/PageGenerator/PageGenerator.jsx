@@ -17,6 +17,7 @@ import iconZip from "./icon_zip.svg";
 import { PageBuilder } from "./PageBuilder";
 
 import * as FormatUtils from "utils/FormatUtils";
+import * as Utils from "utils/Utils";
 
 // have variant, bar, vertical, hamburger
 function PageGenerator({
@@ -189,24 +190,28 @@ function PageGenerator({
     return componentTemplate;
   };
 
-  const handleGeneratePage = (event) => {
-    event.preventDefault();
-
-    setComponentName(formData.pageName);
-
-    setRouterCode(
-      generateRouterCode(formData.pageName, formData.pathParameterName)
-    );
-
-    setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
+  /*
+    pageName: "",
+    pageTitle: "",
+    callbackFunctions: "",
+    hasPathParameter: false,
+    hasChildComponents: false,
+    pathParameterName: "",
+    commandName: "",
+    commandParams: "",
+    commandPropertyName: "",
+    stateVarIsList: false
+*/
+  const formToConfig = (form) => {
+    let callbackFunctions = Utils.parseParamList(form.callbackFunctions);
 
     let theComponentConfig = {
       component: {
         componentName: "Coverage",
         pageTitle: "Coverage Setup",
-        componentParams: ["accountId"],
+//        componentParams: ["accountId"],
         callbackFunctions: ["Edit"], // just descriptive part of name such as Edit, UpdateUser
-        allowsChildren: true,
+//        allowsChildren: true,
         pathParameterName: "theAccountId",
       },
 
@@ -218,6 +223,92 @@ function PageGenerator({
         stateVarIsList: true,
       },
     };
+
+    let config = {};
+
+    config.component = {
+      componentName: form.pageName,
+      pageTitle: form.pageTitle,
+      callbackFunctions: callbackFunctions,
+      pathParameterName: form.pathParameterName
+    };
+
+    config.useEffectConfig = {
+      commandName: formData.commandName,
+      commandParams: Utils.parseParamList(formData.commandParams), // should be a subset of component.parameterList
+      commandStateVar: formData.commandPropertyName,
+      showIsLoading: true,
+      stateVarIsList: formData.stateVarIsList
+    };
+
+
+
+    return config;
+  };
+
+  const handleGeneratePage = (event) => {
+    event.preventDefault();
+
+    setComponentName(formData.pageName);
+
+    setRouterCode(
+      generateRouterCode(formData.pageName, formData.pathParameterName)
+    );
+
+    setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
+/*
+    pageName: "",
+    pageTitle: "",
+    callbackFunctions: "",
+    hasPathParameter: false,
+    hasChildComponents: false,
+    pathParameterName: "",
+    commandName: "",
+    commandParams: "",
+    commandPropertyName: "",
+    stateVarIsList: false
+*/
+/*
+let theComponentConfig = {
+  component: {
+    componentName: formData.pageName,
+    pageTitle: formData.pageTitle,
+    componentParams: ,
+    callbackFunctions: Utils.parseParamList(input), // just descriptive part of name such as Edit, UpdateUser
+    allowsChildren: true,
+    pathParameterName: "theAccountId",
+  },
+
+  useEffectConfig: {
+    commandName: "FindCoverage",
+    commandParams: ["accountId"], // should be a subset of component.parameterList
+    commandStateVar: "coverageList",
+    showIsLoading: true,
+    stateVarIsList: true,
+  },
+};
+*/
+
+let theComponentConfig = {
+      component: {
+        componentName: "Coverage",
+        pageTitle: "Coverage Setup",
+//        componentParams: ["accountId"],
+        callbackFunctions: ["Edit"], // just descriptive part of name such as Edit, UpdateUser
+//        allowsChildren: true,
+        pathParameterName: "theAccountId",
+      },
+
+      useEffectConfig: {
+        commandName: "FindCoverage",
+        commandParams: ["accountId"], // should be a subset of component.parameterList
+        commandStateVar: "coverageList",
+        showIsLoading: true,
+        stateVarIsList: true,
+      },
+    };
+
+    theComponentConfig = formToConfig(formData);
 
     let pageBuilder = new PageBuilder(theComponentConfig);
     let componentFile = pageBuilder.generate();

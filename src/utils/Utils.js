@@ -225,3 +225,12 @@ export function parseParamList(input) {
 export const pause = (milliseconds) => {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 };
+
+
+export function convertHandleToOn(inputString) {
+  if (inputString.startsWith("handleOn")) {
+    return inputString.replace(/handleOn/g, "on");
+  } else {
+    return inputString.replace(/handle/g, "on");
+  }
+}

@@ -1,4 +1,5 @@
 import * as FormatUtils from "utils/FormatUtils";
+import * as Utils from "utils/Utils";
 
 class PageBuilder {
   constructor(config) {
@@ -197,31 +198,62 @@ export { ${componentName} };\n`;
   }
 
   buildUseHooksStatements(componentConfig, useEffectConfig) {
-    if (!useEffectConfig?.commandStateVar) return "";
+    const hookArray = [];
 
-    let hookArray = [];
-
-    let intCommandStateVar = "null";
-    if (useEffectConfig.stateVarIsList) {
-      intCommandStateVar = "[]";
+    if (componentConfig?.pathParameterName) {
+      const { pathParameterName } = componentConfig;
+      hookArray.push(
+        `const { ${pathParameterName} } = useParams();  // get ${pathParameterName} from URL`
+      );
     }
 
-    let pathParameterName = componentConfig.pathParameterName;
-    const { commandStateVar } = useEffectConfig;
+    if (useEffectConfig?.commandStateVar) {
+      const { commandStateVar, stateVarIsList } = useEffectConfig;
+      const initialState = stateVarIsList ? "[]" : "null";
+
+      hookArray.push(
+        `const [${commandStateVar}, set${this.toUpperFirstLetter(
+          commandStateVar
+        )}] = useState(${initialState});`
+      );
+      hookArray.push(`const [isInitialized, setIsInitialized] = useState(false);`);
+      hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
+      hookArray.push(`const { execute, isExecuting } = useCommand();`);
+    }
+
+    return this.toMergedString(hookArray);
+  }
+
+  buildUseHooksStatementsORIG(componentConfig, useEffectConfig) {
+    let hookArray = [];
+
+    if (componentConfig?.pathParameterName) {
+      let pathParameterName = componentConfig.pathParameterName;
 
     hookArray.push(
       `const { ${pathParameterName} } = useParams();  // get ${pathParameterName} from URL`
     );
-    hookArray.push(
-      `const [${commandStateVar}, set${this.toUpperFirstLetter(
-        commandStateVar
-      )}] = useState(${intCommandStateVar});`
-    );
-    hookArray.push(
-      `const [isInitialized, setIsInitialized] = useState(false);`
-    );
-    hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
-    hookArray.push(`const { execute, isExecuting } = useCommand();`);
+  }
+
+    if (useEffectConfig?.commandStateVar) {
+      let intCommandStateVar = "null";
+      if (useEffectConfig.stateVarIsList) {
+        intCommandStateVar = "[]";
+      }
+
+      const { commandStateVar } = useEffectConfig;
+
+      hookArray.push(
+        `const [${commandStateVar}, set${this.toUpperFirstLetter(
+          commandStateVar
+        )}] = useState(${intCommandStateVar});`
+      );
+      hookArray.push(
+        `const [isInitialized, setIsInitialized] = useState(false);`
+      );
+      hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
+      hookArray.push(`const { execute, isExecuting } = useCommand();`);
+    };
 
     return this.toMergedString(hookArray);
   }
@@ -249,6 +281,8 @@ export { ${componentName} };\n`;
 
   useEffect(() => {
     const init = async () => {
+      setIsInitalized(false);
+
       ${checks}
 
       const command = new ${commandName}(${commandParams.join(", ")});
@@ -287,7 +321,7 @@ export { ${componentName} };\n`;
     }
 
     if (componentConfig.pathParameterName) {
-      imports.push(`import { Link, useParams } from "react-router";`);
+      imports.push(`import { useParams } from "react-router";`);
     }
 
     imports.push(`import { Grid, Row, Column } from "components/Grid";`);
@@ -315,10 +349,12 @@ export { ${componentName} };\n`;
       .map((cb) => cb.trim())
       .filter(Boolean)
       .map((cb) => {
+        //let onHandler = cb.replace(/handle/g, "on");
+        let onHandler = Utils.convertHandleToOn(cb);
         const handler = `${cb}`;
-        return `\n  const handle${handler} = (params) => {
+        return `\n  const ${handler} = (params) => {
     // TODO callback allowing a child component to return informaton to ${this.componentConfig.componentName} page
-    //      pass into child's parameters as on${handler} = {handle${handler}}
+    //      pass into child's parameters as ${onHandler} = {${handler}}
   }`;
       })
       .join("\n");
