@@ -28,11 +28,8 @@ class PageBuilder {
     let useEffectOutput = this.buildUseEffectOutput(useEffectConfig);
     let useHooksStatements = this.buildUseHooksStatements(componentConfig, useEffectConfig);
     let errorMessageOutput = this.buildErrorMessageOutput(useEffectConfig);
-    let callbackHandlers = this.buildCallbackHandlers(
-      componentConfig?.callbackFunctions
-    );
-
-      let componentSourceCode = `${importStatements}
+    let callbackHandlers = this.buildCallbackHandlers(componentConfig?.callbackFunctions);
+    let componentSourceCode = `${importStatements}
 
 function ${componentName} () {
 ${this.indent(useHooksStatements, 2)}${useEffectSource}${callbackHandlers.jsCode}
@@ -112,7 +109,7 @@ export { ${componentName} };\n`;
   buildErrorMessageOutput(useEffectConfig) {
     if (!useEffectConfig) return "";
 
-    return `<BlockMessage variant="error">
+    return `<BlockMessage variant="error" style={{ marginBottom: "1rem" }}>
           {errorMessage}
         </BlockMessage>\n`;
   }
@@ -149,7 +146,9 @@ export { ${componentName} };\n`;
     useEffectOutput = `\n      {/* isInitialized prevents flashing No data message before search is done */}
       {isInitialized && (${commandStateVar} ? (     ${useEffectOutput}
       ) : (
-        <p className={styles.error}>No data available</p>
+        <BlockMessage variant="info">
+          <span>No data found.</span>
+        </BlockMessage>
       ))}`;
 
     if (showIsLoading) {
@@ -157,8 +156,7 @@ export { ${componentName} };\n`;
     }
 
     useEffectOutput = `
-        ${useEffectOutput}
-    `;
+        ${useEffectOutput}`;
 
     return useEffectOutput;
   }
@@ -186,40 +184,6 @@ export { ${componentName} };\n`;
       hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
       hookArray.push(`const { execute, isExecuting } = useCommand();`);
     }
-
-    return this.toMergedString(hookArray);
-  }
-
-  buildUseHooksStatementsORIG(componentConfig, useEffectConfig) {
-    let hookArray = [];
-
-    if (componentConfig?.pathParameterName) {
-      let pathParameterName = componentConfig.pathParameterName;
-
-    hookArray.push(
-      `const { ${pathParameterName} } = useParams();  // get ${pathParameterName} from URL`
-    );
-  }
-
-    if (useEffectConfig?.commandStateVar) {
-      let intCommandStateVar = "null";
-      if (useEffectConfig.stateVarIsList) {
-        intCommandStateVar = "[]";
-      }
-
-      const { commandStateVar } = useEffectConfig;
-
-      hookArray.push(
-        `const [${commandStateVar}, set${this.toUpperFirstLetter(
-          commandStateVar
-        )}] = useState(${intCommandStateVar});`
-      );
-      hookArray.push(
-        `const [isInitialized, setIsInitialized] = useState(false);`
-      );
-      hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
-      hookArray.push(`const { execute, isExecuting } = useCommand();`);
-    };
 
     return this.toMergedString(hookArray);
   }
@@ -316,8 +280,9 @@ export { ${componentName} };\n`;
       .filter(Boolean)
       .map((cb) => {
         let onHandler = Utils.convertHandleToOn(cb);
+
         const handler = `${cb}`;
-        return `\n  const ${handler} = (params) => {
+        return `\n\n  const ${handler} = (params) => {
     // TODO callback allowing a child component to return informaton to ${this.componentConfig.componentName} page
     //      pass into child's parameters as ${onHandler} = {${handler}}
   }`;
