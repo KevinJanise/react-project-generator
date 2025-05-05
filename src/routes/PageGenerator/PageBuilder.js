@@ -211,7 +211,7 @@ export { ${componentName} };\n`;
 
   useEffect(() => {
     const init = async () => {
-      setIsInitalized(false);
+      setIsInitialized(false);
 
       ${checks}
 
@@ -260,6 +260,7 @@ export { ${componentName} };\n`;
         'import { LoadingIndicator } from "components/LoadingIndicator";'
       );
     }
+    imports.push(`import { BlockMessage } from "components/BlockMessage";`);
     imports.push(`import { PageSection } from "components/PageSection";`);
     imports.push(`import { PageTitle } from "components/PageTitle";`);
 

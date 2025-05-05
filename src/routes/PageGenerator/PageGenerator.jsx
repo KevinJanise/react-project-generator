@@ -163,6 +163,7 @@ function PageGenerator({
           <PageSection
             title="Initialization"
             className={styles.pageInitializationSection}
+            contentStyle={{ paddingTop: ".5rem" }}
           >
             <Grid>
               <Row>
