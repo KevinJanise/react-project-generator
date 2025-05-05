@@ -24,13 +24,6 @@ class PageBuilder {
     let testId = this.toKebabCase(componentName);
 
     let importStatements = this.buildImports(componentConfig, useEffectConfig);
-    /*
-    let componentParams = this.buildComponentParams(
-      componentConfig,
-      useEffectConfig
-    );
-*/
-
     let useEffectSource = this.buildUseEffect(useEffectConfig);
     let useEffectOutput = this.buildUseEffectOutput(useEffectConfig);
     let useHooksStatements = this.buildUseHooksStatements(componentConfig, useEffectConfig);
@@ -39,26 +32,16 @@ class PageBuilder {
       componentConfig?.callbackFunctions
     );
 
-    let componentJsxBody = this.buildcomponentJsxBody(
-      componentConfig,
-      useEffectConfig
-    );
-
-// ORIG    function ${componentName} ({${componentParams}}) {
-//   const combinedClassNames = [styles.${cssClass}, className].filter(Boolean).join(" ");
-
       let componentSourceCode = `${importStatements}
 
 function ${componentName} () {
 ${this.indent(useHooksStatements, 2)}${useEffectSource}${callbackHandlers.jsCode}
-
   return (
     <div data-testid="${testId}" className={styles.${cssClass}}>
-      <PageTitle title="${componentName}" />
+      <PageTitle title="${componentConfig.pageTitle}" />
 
       <PageSection>
          {/* TODO implement page JSX */}
-
          ${errorMessageOutput}
         <Grid>
             <Row>
@@ -71,9 +54,7 @@ ${this.indent(useHooksStatements, 2)}${useEffectSource}${callbackHandlers.jsCode
               </Column>
             </Row>
         </Grid>
-
-        ${callbackHandlers.jsxCode}${useEffectOutput}
-
+        ${useEffectOutput}
       </PageSection>
     </div>
   );
@@ -83,9 +64,6 @@ export { ${componentName} };\n`;
 
     directory = componentName;
     fileName = `${componentName}.jsx`;
-
-//    let routerCode = this.generateRouterCode(componentConfig);
-  //  console.log(routerCode);
 
     return {
       directory,
@@ -140,11 +118,7 @@ export { ${componentName} };\n`;
   }
 
   buildIsLoadingWrapper(content) {
-    let loadingIndicator = `
-      <LoadingIndicator isLoading={isExecuting} renderDelay={250}>${this.indent(
-        content,
-        2
-      )}\n      </LoadingIndicator>`;
+    let loadingIndicator = `<LoadingIndicator isLoading={isExecuting} renderDelay={250}>${this.indent(content, 4)}\n        </LoadingIndicator>`;
 
     return loadingIndicator;
   }
@@ -182,19 +156,11 @@ export { ${componentName} };\n`;
       useEffectOutput = this.buildIsLoadingWrapper(useEffectOutput);
     }
 
-    useEffectOutput = `\n\n
+    useEffectOutput = `
         ${useEffectOutput}
     `;
 
     return useEffectOutput;
-  }
-
-  buildcomponentJsxBody(componentConfig) {
-    let componentJsxBody = componentConfig.allowsChildren
-      ? `\n      { children }`
-      : "";
-
-    return componentJsxBody;
   }
 
   buildUseHooksStatements(componentConfig, useEffectConfig) {
@@ -349,7 +315,6 @@ export { ${componentName} };\n`;
       .map((cb) => cb.trim())
       .filter(Boolean)
       .map((cb) => {
-        //let onHandler = cb.replace(/handle/g, "on");
         let onHandler = Utils.convertHandleToOn(cb);
         const handler = `${cb}`;
         return `\n  const ${handler} = (params) => {

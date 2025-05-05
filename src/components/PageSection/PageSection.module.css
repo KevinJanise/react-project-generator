@@ -5,7 +5,6 @@
 .title {
   color: #32302e;
   color: #280077;
-  color: #555;
   font-size: 1.5rem;
   font-weight: 400;
   margin-bottom: 0.5rem;
@@ -18,5 +17,6 @@
   border-radius: 7px;
   border: 1px solid #dfdede;
   color: #32302e;
-  padding: .5rem .25rem 1rem .25rem;
+  padding: 1.25rem;
 }
+

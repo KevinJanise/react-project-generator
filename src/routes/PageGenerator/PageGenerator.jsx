@@ -37,7 +37,6 @@ function PageGenerator({
     pageName: "",
     pageTitle: "",
     callbackFunctions: "",
-    hasPathParameter: false,
     hasChildComponents: false,
     pathParameterName: "",
     commandName: "",
@@ -56,192 +55,30 @@ function PageGenerator({
     setFocusOnFirstError,
   } = useErrorMessages();
 
-  const generateMenuBarCode = (thePageName, thePageTitle) => {
-    let theCode = `<Link to="/${FormatUtils.toLowerFirstLetter(
-      thePageName
-    )}" className={\`\${styles.menuItem} underlineFromCenter\`}>
-      ${thePageTitle}
-  </Link>`;
-    return theCode;
-  };
-
-  const generateRouterCode = (thePageName, thePathParameterName) => {
-    let pathParameter = thePathParameterName ? `/:${thePathParameterName}` : "";
-    let path = `path="/${FormatUtils.toLowerFirstLetter(
-      thePageName
-    )}${pathParameter}"`;
-
-    let theCode = `import {${thePageName}} from "routes/${thePageName}";
-    ...
-  <Route exact ${path} element={<${thePageName} />} />
-    `;
-
-    return theCode;
-  };
-
-  const generateUseEffect = (commandName, paramName, commandPropertyName) => {
-    let commandVar = FormatUtils.toLowerFirstLetter(commandName);
-
-    let theCode = `
- useEffect(() => {
-    async function init() {
-      const ${commandVar} = new ${commandName}(${paramName});
-      let result = await execute(${commandVar});
-      console.log(result);
-
-      if (result.isCanceled) return;
-
-      if (result.isSuccess) {
-        set${FormatUtils.toUpperFirstLetter(commandPropertyName)}(result.value);
-        console.log(result);
-      } else {
-        setStatusMessage("Error finding order: " + orderNumber);
-        console.log(result.error);
-      }
-    }
-
-    init();
-  }, [execute, ${paramName}]);
-    `;
-
-    return theCode;
-  };
-
-  const generatePageCode = (
-    thePageName,
-    thePageTitle,
-    thePathParameterName,
-    commandName,
-    theCommandPropertyName
-  ) => {
-    console.log("handleGeneratePage");
-    let useEffectCode = generateUseEffect(
-      commandName,
-      thePathParameterName,
-      theCommandPropertyName
-    );
-
-    let componentTemplate = `import styles from "./${thePageName}.module.css";
-
-  import { useEffect, useState } from "react";
-
-  import { Link, useParams } from "react-router";
-
-  import { Grid, Row, Column } from "components/Grid";
-  import { PageSection } from "components/PageSection";
-  import { PageTitle } from "components/PageTitle";
-
-  import { useCommand } from "hooks/useCommand";
-
-  import { ${commandName} } from "services/${commandName}";
-
-  function ${thePageName}({ children, onStatusUpdate, propertyName = "default value", className = "", style = {}, ...rest }) {
-
-  const {${thePathParameterName}} = useParams();  // get ${thePathParameterName} from URL
-  const { execute, isExecuting, cancel } = useCommand();
-  const [${theCommandPropertyName}, set${FormatUtils.toUpperFirstLetter(
-      theCommandPropertyName
-    )}] = useState(null);
-
-  const combinedClassName = \`\${styles.${FormatUtils.toLowerFirstLetter(
-    thePageName
-  )}} \${className}\`;
-
-    const handleStatusUpdate = () => {
-        let status = "some value";
-
-        onStatusUpdate(status);
-    };
-
-    ${useEffectCode}
-
-    return (
-      <div className={combinedClassName} style={style} {...rest}>
-         <PageTitle title="${thePageTitle}" />
-
-         <PageSection>
-            <Grid>
-               <Row>
-                  <Column width="50%">
-                      <p>Component goes here</p>
-                  </Column>
-
-                  <Column width="50%">
-                      <p>Component goes here</p>
-                  </Column>
-               </Row>
-            </Grid>
-
-            {/* Implement page */}
-            {/*
-            Do something with
-            the property
-            */}
-
-            {children}
-          </PageSection>
-      </div>
-    );
-  }
-
-  export { ${thePageName} };
-      `;
-
-    return componentTemplate;
-  };
-
-  /*
-    pageName: "",
-    pageTitle: "",
-    callbackFunctions: "",
-    hasPathParameter: false,
-    hasChildComponents: false,
-    pathParameterName: "",
-    commandName: "",
-    commandParams: "",
-    commandPropertyName: "",
-    stateVarIsList: false
-*/
   const formToConfig = (form) => {
     let callbackFunctions = Utils.parseParamList(form.callbackFunctions);
 
-    let theComponentConfig = {
-      component: {
-        componentName: "Coverage",
-        pageTitle: "Coverage Setup",
-//        componentParams: ["accountId"],
-        callbackFunctions: ["Edit"], // just descriptive part of name such as Edit, UpdateUser
-//        allowsChildren: true,
-        pathParameterName: "theAccountId",
-      },
-
-      useEffectConfig: {
-        commandName: "FindCoverage",
-        commandParams: ["accountId"], // should be a subset of component.parameterList
-        commandStateVar: "coverageList",
-        showIsLoading: true,
-        stateVarIsList: true,
-      },
-    };
-
-    let config = {};
-
-    config.component = {
+    let coreConfig = {
       componentName: form.pageName,
       pageTitle: form.pageTitle,
       callbackFunctions: callbackFunctions,
-      pathParameterName: form.pathParameterName
+      pathParameterName: form.pathParameterName,
     };
 
-    config.useEffectConfig = {
+    let initConfig = {
       commandName: formData.commandName,
       commandParams: Utils.parseParamList(formData.commandParams), // should be a subset of component.parameterList
       commandStateVar: formData.commandPropertyName,
       showIsLoading: true,
-      stateVarIsList: formData.stateVarIsList
+      stateVarIsList: formData.stateVarIsList,
     };
 
+    let config = {};
 
+    config.component = coreConfig;
+    if (formData.commandName) {
+      config.useEffectConfig = initConfig;
+    }
 
     return config;
   };
@@ -251,84 +88,17 @@ function PageGenerator({
 
     setComponentName(formData.pageName);
 
-    setRouterCode(
-      generateRouterCode(formData.pageName, formData.pathParameterName)
-    );
-
-    setMenuBarCode(generateMenuBarCode(formData.pageName, formData.pageTitle));
-/*
-    pageName: "",
-    pageTitle: "",
-    callbackFunctions: "",
-    hasPathParameter: false,
-    hasChildComponents: false,
-    pathParameterName: "",
-    commandName: "",
-    commandParams: "",
-    commandPropertyName: "",
-    stateVarIsList: false
-*/
-/*
-let theComponentConfig = {
-  component: {
-    componentName: formData.pageName,
-    pageTitle: formData.pageTitle,
-    componentParams: ,
-    callbackFunctions: Utils.parseParamList(input), // just descriptive part of name such as Edit, UpdateUser
-    allowsChildren: true,
-    pathParameterName: "theAccountId",
-  },
-
-  useEffectConfig: {
-    commandName: "FindCoverage",
-    commandParams: ["accountId"], // should be a subset of component.parameterList
-    commandStateVar: "coverageList",
-    showIsLoading: true,
-    stateVarIsList: true,
-  },
-};
-*/
-
-let theComponentConfig = {
-      component: {
-        componentName: "Coverage",
-        pageTitle: "Coverage Setup",
-//        componentParams: ["accountId"],
-        callbackFunctions: ["Edit"], // just descriptive part of name such as Edit, UpdateUser
-//        allowsChildren: true,
-        pathParameterName: "theAccountId",
-      },
-
-      useEffectConfig: {
-        commandName: "FindCoverage",
-        commandParams: ["accountId"], // should be a subset of component.parameterList
-        commandStateVar: "coverageList",
-        showIsLoading: true,
-        stateVarIsList: true,
-      },
-    };
-
-    theComponentConfig = formToConfig(formData);
+    let theComponentConfig = formToConfig(formData);
 
     let pageBuilder = new PageBuilder(theComponentConfig);
     let componentFile = pageBuilder.generate();
     setPageCode(componentFile);
 
     setRouterCode(pageBuilder.generateRouterCode(theComponentConfig.component));
-    setMenuBarCode(pageBuilder.generateMenuBarCode(theComponentConfig.component));
-    setIndexCode(pageBuilder.generateIndexCode(theComponentConfig.component));
-
-    /*
-    setPageCode(
-      generatePageCode(
-        formData.pageName,
-        formData.pageTitle,
-        formData.pathParameterName,
-        formData.commandName,
-        formData.commandPropertyName
-      )
+    setMenuBarCode(
+      pageBuilder.generateMenuBarCode(theComponentConfig.component)
     );
-    */
+    setIndexCode(pageBuilder.generateIndexCode(theComponentConfig.component));
   };
 
   const handleClear = () => {
@@ -344,7 +114,10 @@ let theComponentConfig = {
 
       <PageSection>
         <form onSubmit={handleGeneratePage}>
-          <PageSection title="Basic Info" style={{ margin: "1rem" }}>
+          <PageSection
+            title="Basic Info"
+            contentStyle={{ paddingTop: ".5rem" }}
+          >
             <Grid>
               <Row>
                 <Column width="25%">
@@ -374,8 +147,9 @@ let theComponentConfig = {
                 </Column>
                 <Column width="25%">
                   <LabeledTextInput
-                    label='Callback Functions ("handle???")'
+                    label='Callback Functions'
                     name="callbackFunctions"
+                    placeholder="handle..."
                     onBlur={trimValue}
                     onChange={handleChange}
                     value={formData.callbackFunctions}
@@ -386,25 +160,12 @@ let theComponentConfig = {
             </Grid>
           </PageSection>
 
-          <PageSection title="Page Initialization" style={{ margin: "1rem" }}>
+          <PageSection
+            title="Initialization"
+            className={styles.pageInitializationSection}
+          >
             <Grid>
               <Row>
-                <Column
-                  width="25%"
-                  valign="center"
-                  style={{ paddingTop: "2rem" }}
-                >
-                  <label>
-                    <input
-                      className={styles.checkbox}
-                      type="checkbox"
-                      name="hasPathParameter"
-                      checked={formData.hasPathParameter}
-                      onChange={handleChange}
-                    />
-                    Has path parameter
-                  </label>
-                </Column>
                 <Column width="25%">
                   <LabeledTextInput
                     label="Path Parameter Name"
@@ -432,7 +193,7 @@ let theComponentConfig = {
                     errorMessage={getErrorMessage("commandName")}
                   />
                 </Column>
-                <Column width="25%" valign="bottom">
+                <Column width="25%">
                   <LabeledTextInput
                     label="Command Params"
                     name="commandParams"
@@ -477,28 +238,31 @@ let theComponentConfig = {
           </PageSection>
 
           <ButtonBar style={{ marginTop: "1rem" }}>
-                <button
-                  className="button"
-                  type="submit"
-                  style={{ marginRight: "1rem" }}
-                >
-                  Generate Page
-                </button>
+            <button
+              className="button"
+              type="submit"
+              style={{ marginRight: "1rem" }}
+            >
+              Generate Page
+            </button>
 
-                <button
-                  className="button"
-                  type="button"
-                  onClick={handleClear}
-                  style={{ marginRight: "1rem" }}
-                >
-                  Clear
-                </button>
-                </ButtonBar>
+            <button
+              className="button"
+              type="button"
+              onClick={handleClear}
+              style={{ marginRight: "1rem" }}
+            >
+              Clear
+            </button>
+          </ButtonBar>
         </form>
       </PageSection>
 
       {pageCode && (
-        <PageSection title={`Code for Page - ${pageName}`} style={{marginTop: "1rem"}}>
+        <PageSection
+          title={`Code for Page - ${pageName}`}
+          style={{ marginTop: "1rem" }}
+        >
           <img
             src={iconZip}
             className={styles.zipIcon}
@@ -513,7 +277,7 @@ let theComponentConfig = {
           />
 
           <CodeDisplay
-            title={ `src/routes/${pageCode.directory}/${pageCode.fileName}`}
+            title={`src/routes/${pageCode.directory}/${pageCode.fileName}`}
             sourceCode={pageCode.content}
           />
 
@@ -526,7 +290,7 @@ let theComponentConfig = {
             title={`src/routes/${pageCode.directory}/${pageCode.directory}.module.css`}
             sourceCode={`.${FormatUtils.toLowerFirstLetter(
               pageCode.directory
-            )}\n  {\n     /* add CSS */ \n  }`}
+            )} {\n   /* add CSS */ \n}`}
           />
         </PageSection>
       )}

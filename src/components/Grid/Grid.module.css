@@ -1,5 +1,7 @@
+
 :root {
-  --grid-column-padding: 0.5rem 1rem;
+  --grid-offset: -.5rem -.5rem -.5rem -.5rem;
+  --grid-column-padding: .5rem .5rem .5rem .5rem;
 }
 
 .grid {
@@ -7,6 +9,10 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+.gridOffset {
+  margin: var(--grid-offset);
 }
 
 .row {
@@ -29,11 +35,14 @@
 
 /* Alignment classes */
 .alignLeft { justify-content: flex-start; }
+.alignStart { justify-content: flex-start; }
 .alignCenter { justify-content: center; }
 .alignRight { justify-content: flex-end; }
+.alignEnd { justify-content: flex-end; }
 .alignSpace-between { justify-content: space-between; }
 .alignSpace-around { justify-content: space-around; }
 .alignSpace-evenly { justify-content: space-evenly; }
+
 .valignTop { align-items: flex-start; }
 .valignCenter { align-items: center; }
 .valignBottom { align-items: flex-end; }
@@ -57,3 +66,4 @@
 .row    { outline: 1px solid blue; }
 .column { outline: 1px solid green; }
 */
+
