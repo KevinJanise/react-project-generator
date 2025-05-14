@@ -99,12 +99,12 @@ export { ${componentName} };\n`;
 // TODO Add link in another page and populate state properies
 <Link
   to={{
-    pathname: "/${path},
+    pathname: "/${path}",
     state: {
       ${pathParameterName}: "value of ${pathParameterName}",  // set key-value pairs here, value can be an object
     }
   }}
-></Link>
+>Anchor Text</Link>
         `;
 
       // react-router-dom 5.x uses component, later ones use element
@@ -115,7 +115,7 @@ export { ${componentName} };\n`;
       routeCode = `<Route exact path="/${path}/:${pathParameterName}" component={${pageName}} />
 
 // TODO Add link in another page and populate the ${pathParameterName} value in the URL
-<Link to="/${path}/${pathParameterName}Value">Link Label</Link>
+<Link to="/${path}/${pathParameterName}Value">Anchor Text</Link>
 `;
     }
 
@@ -180,7 +180,13 @@ theJsx =
 `
               <h2>Item Value</h2>
 
-              {JSON.stringify(${stateVar})}`;
+              <Grid>
+                <Row>
+                  <Column width="50%">
+                    {JSON.stringify(${stateVar})}
+                  </Column>
+                </Row>
+              </Grid>`;
       }
 
 
@@ -306,7 +312,9 @@ theJsx =
         >
           {pageLoadingState === PAGE_STATE.READY && (
             <>
-              <p>Page's JSX Goes Here!</p>
+              <BlockMessage variant="info" style={{marginBottom: "1rem"}}>
+                <span>Complete the page's JSX.</span>
+              </BlockMessage>
               ${jsxOutput}
             </>
           )}
