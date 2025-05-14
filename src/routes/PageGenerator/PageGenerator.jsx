@@ -93,24 +93,26 @@ function PageGenerator({
     let config2 = {
       component: {
         // basic info
-        componentName: "FindUser",
-        pageTitle: "Find User",
+        componentName: "ClaimActivity",
+        pageTitle: "Claim Activity",
         callbackFunctions: [], //["handleOnEdit", "handleOnDelete"],
 
         // navigation to page
-        pathParameterName: "userId",
-        pathParameterType: "PATH", // "PATH"  // STATE or PATH
+        pathParameterName: "claimInfo",
+        pathParameterType: "STATE", // "PATH"  // STATE or PATH
       },
       // page initialization
       useEffectConfig: {
-        commandName: "FindUserCommand",
-        commandParams: ["userId"],
-        commandStateVar: "user",
-        showIsLoading: false,
+        commandName: "FindClaimDetail",
+        commandParams: ["claimInfo"],
+        commandStateVar: "claimDetail",
+        showIsLoading: true,
         stateVarIsList: false,
         resultCanBeEmpty: false
       },
     };
+
+    config = config2;
 
     // config.component.pathParameterName = null;
     // config.component.pathParameterType = null;

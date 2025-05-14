@@ -26,8 +26,6 @@ class PageBuilder {
     let importStatements = this.buildImports(componentConfig, useEffectConfig);
     let useEffectSource = this.buildInitializationJsCode(useEffectConfig);
 
-    //let useEffectOutput = this.buildUseEffectOutput(useEffectConfig);
-
     let jsxOutputBlock = this.buildInitializationJsx(
       componentConfig,
       useEffectConfig
@@ -48,8 +46,7 @@ ${this.indent(useHooksStatements, 2)}${useEffectSource}${
       callbackHandlers.jsCode
     }
 
-  return (
-        ${jsxOutputBlock}
+  return (       ${jsxOutputBlock}
   );
 }
 
@@ -104,7 +101,7 @@ export { ${componentName} };\n`;
   to={{
     pathname: "/${path},
     state: {
-      ${pathParameterName}: "value of ${pathParameterName}",  // set key-value pairs here
+      ${pathParameterName}: "value of ${pathParameterName}",  // set key-value pairs here, value can be an object
     }
   }}
 ></Link>
@@ -183,8 +180,7 @@ theJsx =
 `
               <h2>Item Value</h2>
 
-              {JSON.stringify(${stateVar})}
-`;
+              {JSON.stringify(${stateVar})}`;
       }
 
 
@@ -235,9 +231,7 @@ theJsx =
     if (stateVarIsList) {
       jsxOutput = this.buildListJsx(commandStateVar, resultCanBeEmpty);
     } else {
-      console.log("************** jsx output is for object");
       jsxOutput = this.buildObjectJsx(commandStateVar, resultCanBeEmpty);
-      console.log("jsxOutput", jsxOutput);
     }
 
     return jsxOutput;
@@ -258,7 +252,7 @@ theJsx =
 
     jsxOutput =
 `
-   <div data-testid="${testId}" className={styles.${cssClass}}>
+    <div data-testid="${testId}" className={styles.${cssClass}}>
       <PageTitle title="${componentConfig.pageTitle}" />
 
       <PageSection>
@@ -275,7 +269,6 @@ theJsx =
         </Grid>
       </PageSection>
     </div>
-
 `;
 
     return jsxOutput;
@@ -297,13 +290,11 @@ theJsx =
       resultCanBeEmpty,
     } = useEffectConfig;
 
-    //if (stateVarIsList) {
-      // jsxOutput = this.buildListJsx(commandStateVar);
       jsxOutput = this.buildJsxOutput(componentConfig, useEffectConfig);
-    //}
 
-    const code = `
-   <div data-testid="${testId}" className={styles.${cssClass}}>
+    const code =
+    `
+    <div data-testid="${testId}" className={styles.${cssClass}}>
       <PageTitle title="${componentConfig.pageTitle}" />
 
       <PageSection>
@@ -315,20 +306,13 @@ theJsx =
         >
           {pageLoadingState === PAGE_STATE.READY && (
             <>
-              <BlockMessage variant="error" style={{ marginBottom: "1rem" }}>
-                {errorMessage}
-              </BlockMessage>
-
               <p>Page's JSX Goes Here!</p>
-
               ${jsxOutput}
-
             </>
           )}
         </PageStateContainer>
       </PageSection>
-    </div>
-`;
+    </div>`;
 
     return code;
   }
@@ -337,47 +321,6 @@ theJsx =
 
 
 
-
-  buildUseEffectOutput(useEffectConfig) {
-    if (!useEffectConfig) return "";
-
-    const { commandStateVar, stateVarIsList, showIsLoading } = useEffectConfig;
-
-    let useEffectOutput = null;
-
-    if (stateVarIsList) {
-      useEffectOutput = `
-        <>
-           <h2>List of Items</h2>
-           <ul>
-            {${commandStateVar}.map((item, index) => (
-              // TODO: Each key should be unique and unchanging, ideally from your data
-              <li key={item?.id ?? index}>{JSON.stringify(item)}</li>
-            ))}
-          </ul>
-        </>`;
-    } else {
-      // single line
-      useEffectOutput = `\n        <p>${commandStateVar} is: {JSON.stringify(${commandStateVar})}</p>`;
-    }
-
-    useEffectOutput = `\n      {/* isInitialized prevents flashing No data message before search is done */}
-      {isInitialized && (${commandStateVar} ? (     ${useEffectOutput}
-      ) : (
-        <BlockMessage variant="info">
-          <span>No data found.</span>
-        </BlockMessage>
-      ))}`;
-
-    if (showIsLoading) {
-      useEffectOutput = this.buildIsLoadingWrapper(useEffectOutput);
-    }
-
-    useEffectOutput = `
-        ${useEffectOutput}`;
-
-    return useEffectOutput;
-  }
 
   buildUseHooksStatements(componentConfig, useEffectConfig) {
     const hookArray = [];
@@ -414,7 +357,7 @@ theJsx =
         `const [pageInitializationErrorMessage, setPageInitializationErrorMessage] = useState(null);`
       );
       hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
-      hookArray.push(`const { execute, isExecuting } = useCommand();`);
+      hookArray.push(`const { execute } = useCommand();`);
 
       hookArray.push(`const has${this.toUpperFirstLetter(commandStateVar)} = Utils.isNotEmpty(${commandStateVar});`);
     }
@@ -433,21 +376,35 @@ theJsx =
       resultCanBeEmpty,
     } = useEffectConfig;
 
-    let emptyTest = `
-      if (Utils.isEmpty(result.value)) {
-        setPageLoadingState(PAGE_STATE.ERROR);
-        setPageInitializationErrorMessage("${commandStateVar} came back empty, not allowed!");
-      } else {
-        setPageLoadingState(PAGE_STATE.READY);
-      }`;
+    let emptyTest =
+`
+        // Check if ${commandStateVar} was found
+        if (Utils.isObjectEmpty(result.value)) {
+          setPageInitializationErrorMessage("${commandStateVar} was not found!");
+          setPageLoadingState(PAGE_STATE.ERROR);
+          return;
+        }
+`;
 
     if (resultCanBeEmpty) {
-      emptyTest = "setPageLoadingState(PAGE_STATE.READY);";
+      emptyTest = ``;
     }
 
     const initialState = stateVarIsList ? "[]" : "null";
 
-    let code = `
+        const checks = commandParams
+      .map((p) =>
+`if (!${p}) {
+      setPageInitializationErrorMessage("${p} is required");
+      setPageLoadingState(PAGE_STATE.ERROR);
+
+      return;
+    }`)
+      .join("\n      ");
+
+
+let code =
+`
 
   const clear = () => {
     set${this.toUpperFirstLetter(commandStateVar)}(${initialState});
@@ -459,18 +416,30 @@ theJsx =
     setPageLoadingState(PAGE_STATE.LOADING);
     clear();
 
-    const command = new ${commandName}(${commandParams.join(", ")});
-    const result = await execute(command);
+    ${checks}
 
-    if (result.isCanceled) return;
+    // Executing Command should never return an error but we'll use a try-catch just in case
+    try {
+      const command = new ${commandName}(${commandParams.join(", ")});
+      const result = await execute(command);
 
-    if (result.isSuccess) {
-      set${this.toUpperFirstLetter(commandStateVar)}(result.value);
-      ${emptyTest}
-    } else {
-      console.error(result.error);
+      // Handle canceled request - normally because user left the page and page unmounted
+      if (result.isCanceled) return;
+
+      // Handle successful API call
+      if (result.isSuccess) {${emptyTest}
+        // Process valid ${commandStateVar}
+        set${this.toUpperFirstLetter(commandStateVar)}(result.value);
+        setPageLoadingState(PAGE_STATE.READY);
+        return;
+      }
+
+      // Handle API error
+      throw new Error(result.error?.message || "Unknown error occurred");
+    } catch (error) {
+      console.error("Error loading page:", error);
+      setPageInitializationErrorMessage(\`Oops! There was an error loading the page. - \${error.message}\`);
       setPageLoadingState(PAGE_STATE.ERROR);
-      setPageInitializationErrorMessage("Oops! There was an error loading the page.");
     }
   });
 
@@ -484,8 +453,7 @@ theJsx =
 
   const handleRetry = () => {
     initializePage();
-  };
-`;
+  };`;
 
     return code;
   }
@@ -585,7 +553,7 @@ theJsx =
 
     imports.push(`import { BlockMessage } from "components/BlockMessage";`);
     imports.push(`import { Grid, Row, Column } from "components/Grid";`);
-    if (useEffectConfig?.showIsLoading) {
+    if (useEffectConfig) {
       imports.push(
         `import { PageStateContainer, PAGE_STATE } from "components/PageStateContainer";`
       );
