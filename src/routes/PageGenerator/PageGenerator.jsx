@@ -112,7 +112,7 @@ function PageGenerator({
       },
     };
 
-    config = config2;
+    // config = config2;
 
     // config.component.pathParameterName = null;
     // config.component.pathParameterType = null;
