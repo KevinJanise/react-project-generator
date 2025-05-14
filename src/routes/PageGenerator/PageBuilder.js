@@ -104,8 +104,7 @@ export { ${componentName} };\n`;
   to={{
     pathname: "/${path},
     state: {
-      ${pathParameterName}: "value of ${pathParameterName}",  // set value here
-      otherProperty: "other value"
+      ${pathParameterName}: "value of ${pathParameterName}",  // set key-value pairs here
     }
   }}
 ></Link>
@@ -116,7 +115,11 @@ export { ${componentName} };\n`;
       // <Route exact path="/findUsers" component={FindUsers} />   > 5.x
     } else if (parameterType === "PATH") {
       let path = FormatUtils.toLowerFirstLetter(pageName);
-      routeCode = `<Route exact path="/${path}/:${pathParameterName}" component={${pageName}} />`;
+      routeCode = `<Route exact path="/${path}/:${pathParameterName}" component={${pageName}} />
+
+// TODO Add link in another page and populate the ${pathParameterName} value in the URL
+<Link to="/${path}/${pathParameterName}Value">Link Label</Link>
+`;
     }
 
     let theCode = `import {${pageName}} from "routes/${pageName}";
@@ -157,18 +160,33 @@ ${routeCode}
 
       buildObjectJsx(stateVar, resultCanBeEmpty) {
       let checkVar = "has" + this.toUpperFirstLetter(stateVar);
+      let theJsx = "";
 
-    let theJsx = `
-
+      if (resultCanBeEmpty) {
+    theJsx = `
               {${checkVar} && (
                 <h2>Item</h2>
 
-                {JSON.stringify(${stateVar})}
-
+                <Grid>
+                  <Row>
+                    <Column width="50%">
+                      <p>{JSON.stringify(${stateVar})}</p>
+                    </Column>
+                  </Row>
+                </Grid>
               ) : (
                  <BlockMessage variant="info">${stateVar} is empty.</BlockMessage>
               )}
         `;
+      } else {
+theJsx =
+`
+              <h2>Item Value</h2>
+
+              {JSON.stringify(${stateVar})}
+`;
+      }
+
 
     return theJsx;
   }
@@ -225,8 +243,46 @@ ${routeCode}
     return jsxOutput;
   }
 
+  buildSimpleJsxOutput(componentConfig) {
+    let componentName = componentConfig.componentName;
+    let cssClass = this.toLowerFirstLetter(componentName);
+    let testId = this.toKebabCase(componentName);
+    let jsxOutput = "";
+    let message = "";
+
+    if (componentConfig.pathParameterName) {
+      message = `<p>${componentConfig.pathParameterName} has the value {${componentConfig.pathParameterName}}.</p>`;
+    } else {
+      message = "<p>Here is a message.</p>";
+    }
+
+    jsxOutput =
+`
+   <div data-testid="${testId}" className={styles.${cssClass}}>
+      <PageTitle title="${componentConfig.pageTitle}" />
+
+      <PageSection>
+        <BlockMessage variant="info" style={{ marginBottom: "1rem" }}>
+          ${message}
+        </BlockMessage>
+
+        <Grid>
+          <Row>
+            <Column width="50%">
+              <p>Page's JSX Goes Here!</p>
+            </Column>
+          </Row>
+        </Grid>
+      </PageSection>
+    </div>
+
+`;
+
+    return jsxOutput;
+  }
+
   buildInitializationJsx(componentConfig, useEffectConfig) {
-    if (!useEffectConfig) return "";
+    if (!useEffectConfig) return this.buildSimpleJsxOutput(componentConfig);
 
     let componentName = componentConfig.componentName;
     let cssClass = this.toLowerFirstLetter(componentName);
@@ -380,7 +436,7 @@ ${routeCode}
     let emptyTest = `
       if (Utils.isEmpty(result.value)) {
         setPageLoadingState(PAGE_STATE.ERROR);
-        setPageInitializationErrorMessage("${commandStateVar} was not initialized!");
+        setPageInitializationErrorMessage("${commandStateVar} came back empty, not allowed!");
       } else {
         setPageLoadingState(PAGE_STATE.READY);
       }`;

@@ -90,15 +90,15 @@ function PageGenerator({
 
     console.log(JSON.stringify(config));
 
-    config = {
+    let config2 = {
       component: {
         // basic info
         componentName: "FindUser",
         pageTitle: "Find User",
-        callbackFunctions: ["handleOnEdit", "handleOnDelete"],
+        callbackFunctions: [], //["handleOnEdit", "handleOnDelete"],
 
         // navigation to page
-        pathParameterName:  "userId",
+        pathParameterName: "userId",
         pathParameterType: "PATH", // "PATH"  // STATE or PATH
       },
       // page initialization
@@ -115,7 +115,7 @@ function PageGenerator({
     // config.component.pathParameterName = null;
     // config.component.pathParameterType = null;
 
-    // config.useEffectConfig = null;
+     // config.useEffectConfig = null;
 
     return config;
   };
