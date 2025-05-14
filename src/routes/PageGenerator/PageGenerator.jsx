@@ -18,6 +18,7 @@ import { PageBuilder } from "./PageBuilder";
 
 import * as FormatUtils from "utils/FormatUtils";
 import * as Utils from "utils/Utils";
+import { LabeledControlGroup } from "components/LabeledControlGroup";
 
 // have variant, bar, vertical, hamburger
 function PageGenerator({
@@ -43,6 +44,8 @@ function PageGenerator({
     commandParams: "",
     commandPropertyName: "",
     stateVarIsList: false,
+    pathParameterType: "PATH",
+    resultCanBeEmpty: "NO"
   };
   const { formData, resetForm, handleChange, setFormData, trimValue } =
     useForm(initialFormState);
@@ -59,12 +62,17 @@ function PageGenerator({
     let callbackFunctions = Utils.parseParamList(form.callbackFunctions);
 
     let coreConfig = {
+      // basic info
       componentName: form.pageName,
       pageTitle: form.pageTitle,
       callbackFunctions: callbackFunctions,
+
+      // navigation to page
       pathParameterName: form.pathParameterName,
+      pathParameterType: form.pathParameterType
     };
 
+    // page initialization
     let initConfig = {
       commandName: formData.commandName,
       commandParams: Utils.parseParamList(formData.commandParams), // should be a subset of component.parameterList
@@ -79,6 +87,35 @@ function PageGenerator({
     if (formData.commandName) {
       config.useEffectConfig = initConfig;
     }
+
+    console.log(JSON.stringify(config));
+
+    config = {
+      component: {
+        // basic info
+        componentName: "FindUser",
+        pageTitle: "Find User",
+        callbackFunctions: ["handleOnEdit", "handleOnDelete"],
+
+        // navigation to page
+        pathParameterName:  "userId",
+        pathParameterType: "PATH", // "PATH"  // STATE or PATH
+      },
+      // page initialization
+      useEffectConfig: {
+        commandName: "FindUserCommand",
+        commandParams: ["userId"],
+        commandStateVar: "user",
+        showIsLoading: false,
+        stateVarIsList: false,
+        resultCanBeEmpty: false
+      },
+    };
+
+    // config.component.pathParameterName = null;
+    // config.component.pathParameterType = null;
+
+    // config.useEffectConfig = null;
 
     return config;
   };
@@ -147,7 +184,7 @@ function PageGenerator({
                 </Column>
                 <Column width="25%">
                   <LabeledTextInput
-                    label='Callback Functions'
+                    label="Callback Functions"
                     name="callbackFunctions"
                     placeholder="handle..."
                     onBlur={trimValue}
@@ -161,7 +198,7 @@ function PageGenerator({
           </PageSection>
 
           <PageSection
-            title="Initialization"
+            title="Navigation to Page"
             className={styles.pageInitializationSection}
             contentStyle={{ paddingTop: ".5rem" }}
           >
@@ -169,7 +206,7 @@ function PageGenerator({
               <Row>
                 <Column width="25%">
                   <LabeledTextInput
-                    label="Path Parameter Name"
+                    label="Link Parameter Name"
                     name="pathParameterName"
                     onBlur={trimValue}
                     placeholder=""
@@ -179,8 +216,42 @@ function PageGenerator({
                     errorMessage={getErrorMessage("pathParameterName")}
                   />
                 </Column>
-              </Row>
 
+                <Column width="50%">
+                  <LabeledControlGroup label="Link Parameter Type" layout="row">
+                    <input
+                      type="radio"
+                      id="path"
+                      name="pathParameterType"
+                      onChange={handleChange}
+                      value="PATH"
+                      checked={formData.pathParameterType === 'PATH'}
+                    />
+                    <label htmlFor="path" style={{ marginRight: "1rem" }}>
+                      Path Parameter
+                    </label>
+
+                    <input
+                      type="radio"
+                      id="state"
+                      name="pathParameterType"
+                      onChange={handleChange}
+                      value="STATE"
+                      checked={formData.pathParameterType === 'STATE'}
+                    />
+                    <label htmlFor="state">State Parameter</label>
+                  </LabeledControlGroup>
+                </Column>
+              </Row>
+            </Grid>
+          </PageSection>
+
+          <PageSection
+            title="Page Initialization"
+            className={styles.pageInitializationSection}
+            contentStyle={{ paddingTop: ".5rem" }}
+          >
+            <Grid>
               <Row>
                 <Column width="25%">
                   <LabeledTextInput
@@ -205,6 +276,8 @@ function PageGenerator({
                   />
                 </Column>
 
+              </Row>
+              <Row>
                 <Column width="25%">
                   <LabeledTextInput
                     label="State Variable"
@@ -216,6 +289,32 @@ function PageGenerator({
                     type="text"
                     errorMessage={getErrorMessage("commandPropertyName")}
                   />
+                </Column>
+
+                <Column width="25%">
+                  <LabeledControlGroup label="State Variable Can be Empty" layout="row">
+                    <input
+                      type="radio"
+                      id="path"
+                      name="resultCanBeEmpty"
+                      onChange={handleChange}
+                      value="YES"
+                      checked={formData.resultCanBeEmpty === 'YES'}
+                    />
+                    <label htmlFor="path" style={{ marginRight: "1rem" }}>
+                      Yes
+                    </label>
+
+                    <input
+                      type="radio"
+                      id="state"
+                      name="resultCanBeEmpty"
+                      onChange={handleChange}
+                      value="NO"
+                      checked={formData.resultCanBeEmpty === 'NO'}
+                    />
+                    <label htmlFor="state">No</label>
+                  </LabeledControlGroup>
                 </Column>
 
                 <Column
