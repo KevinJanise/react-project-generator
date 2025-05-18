@@ -1,0 +1,246 @@
+import styles from "./EditCoverageDialog.module.css";
+
+import { useState, useEffect } from "react";
+
+import { Button } from "csg-react-magnetic/button";
+import { Modal } from "csg-react-magnetic/modal";
+import { SingleSelect } from "csg-react-magnetic/single-select";
+
+import { BlockMessage } from "components/BlockMessage";
+import { ButtonBar } from "components/ButtonBar";
+import { DatePickerWithEnter } from "components/DatePickerWithEnter";
+import { Grid, Row, Column } from "components/Grid";
+import { PageStateContainer, PAGE_STATE as DIALOG_STATE } from "components/PageStateContainer";
+import { ProgressIndicator } from "components/ProgressIndicator";
+
+import { useStableFunction } from "hooks/useStableFunction";
+import { useCommand } from "hooks/useCommand";
+
+import { FindAssignToCandidatesCommand } from "services/FindAssignToCandidatesCommand";
+import { FindCoverageCandidatesCommand } from "services/FindCoverageCandidatesCommand";
+
+import * as Utils from "utils/Utils";
+
+import * as Validator from "utils/Validator";
+import * as FormatUtils from "utils/FormatUtils";
+import { useForm } from "hooks/useForm";
+import { useErrorMessages } from "hooks/useErrorMessages";
+
+const EditCoverageDialog = ({ title, coverage, onStatusUpdate, onOk, onCancel, hideModal }) => {
+  const {
+    addErrorMessage,
+    clearErrorMessages,
+    getErrorMessage,
+    hasFieldSpecificErrors,
+    setFocusOnFirstError,
+    removeErrorMessage
+  } = useErrorMessages();
+
+  const [fromUserList, setFromUserList] = useState([]);
+  const [toUserList, setToUserList] = useState([]);
+
+  let initialFormState = {
+    startDate: FormatUtils.formatDate(coverage?.beginDt),
+    throughDate: FormatUtils.formatDate(coverage?.endDt),
+    fromUser: coverage?.adjusterId,
+    toUser: coverage?.coveringAdjusterId
+  };
+  const { formData, handleMagneticChange } = useForm(initialFormState);
+
+  const [dialogLoadingState, setDialogLoadingState] = useState(DIALOG_STATE.LOADING);
+  const [dialogInitializationErrorMessage, setDialogInitializationErrorMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const { execute, cancel: cancelCommand, executeAsync } = useCommand();
+
+  const clear = () => {
+    setToUserList(null);
+
+    setErrorMessage(null);
+    setDialogInitializationErrorMessage(null);
+  };
+
+const initializeDialog = useStableFunction(async () => {
+  setDialogLoadingState(DIALOG_STATE.LOADING);
+  clear();
+
+  if (!coverage) {
+    setDialogInitializationErrorMessage("coverage is required");
+    setDialogLoadingState(DIALOG_STATE.ERROR);
+    return;
+  }
+
+  try {
+    const findFromUserCommand = new FindCoverageCandidatesCommand();
+    const findAssignToCommand = new FindAssignToCandidatesCommand(coverage.adjusterId);
+
+    const [fromUserResult, toUserResult] = await executeAsync([
+      findFromUserCommand, 
+      findAssignToCommand
+    ]);
+    
+    // Early return if any command was canceled
+    if (fromUserResult.isCanceled || toUserResult.isCanceled) {
+      return;
+    }
+
+    // Handle errors
+    if (!fromUserResult.isSuccess || !toUserResult.isSuccess) {
+      throw new Error(fromUserResult.error?.message || toUserResult.error?.message || "Unknown error occurred");
+    }
+
+    console.log("fromUserResult", fromUserResult);
+    console.log("toUserResult", toUserResult);
+
+    // Check for empty results
+    if (Utils.isObjectEmpty(fromUserResult.value)) {
+      setDialogInitializationErrorMessage("fromUserList was not found!");
+      setDialogLoadingState(DIALOG_STATE.ERROR);
+      return;
+    }
+
+    if (Utils.isObjectEmpty(toUserResult.value)) {
+      setDialogInitializationErrorMessage("toUserList was not found!");
+      setDialogLoadingState(DIALOG_STATE.ERROR);
+      return;
+    }
+
+    // Set user lists
+    setFromUserList(Utils.transformArray(fromUserResult.value, { id: "Id", name: "Name" }), true);
+    setToUserList(Utils.transformArray(toUserResult.value, { id: "userAccountId", name: "adjusterName" }), true);
+
+    setDialogLoadingState(DIALOG_STATE.READY);
+  } catch (error) {
+    console.error("Error loading page:", error);
+    setDialogInitializationErrorMessage(`Oops! There was an error loading the dialog box. - ${error.message}`);
+    setDialogLoadingState(DIALOG_STATE.ERROR);
+  }
+});
+
+useEffect(() => {
+    initializeDialog();
+
+    return () => {
+      // TODO Cleanup logic if needed
+    };
+  }, [initializeDialog]);
+
+  const handleRetry = () => {
+    initializeDialog();
+  };
+
+  const handleCancel = () => {
+    cancelCommand();
+    hideModal();
+    onCancel?.();
+    onStatusUpdate({ isSuccess: true, message: "Cancel pressed!" });
+  };
+
+  const handleOk = () => {
+    setIsSaving(true);
+    hideModal();
+    onOk?.();
+    onStatusUpdate({ isSuccess: true, message: "OK pressed!" });
+  };
+
+  return (
+    <Modal
+      className={styles.editCoverageDialog}
+      width="600px"
+      title={title}
+      onClose={handleCancel}
+      footer={
+        <ButtonBar className={styles.buttonBar} align="right">
+          <Button onClick={handleOk} loading={isSaving} disabled={dialogLoadingState !== DIALOG_STATE.READY}>
+            OK
+          </Button>
+
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+        </ButtonBar>
+      }
+    >
+      <div className={styles.dialogBody}>
+        <PageStateContainer
+          errorStyle={{ marginTop: ".75rem" }}
+          loadingStyle={{ marginTop: ".75rem" }}
+          state={dialogLoadingState}
+          initializationErrorMessage={dialogInitializationErrorMessage}
+          onRetry={handleRetry}
+          renderDelay={333}
+        >
+          {dialogLoadingState === DIALOG_STATE.READY && (
+            <>
+              <BlockMessage variant="error" className={styles.blockMessage} onClose={() => removeErrorMessage("global")}>
+                {getErrorMessage("global")}
+              </BlockMessage>
+
+              <Grid>
+                <Row>
+                  <Column width="50%">
+                    <SingleSelect
+                      style={{ width: "100%" }}
+                      required
+                      label="From User"
+                      placeholder="Select One..."
+                      name="fromUser"
+                      value={formData.fromUser}
+                      options={fromUserList}
+                      onChange={handleMagneticChange("fromUser", "select")}
+                      validationError={getErrorMessage("fromUser")}
+                    />
+                  </Column>
+
+                  <Column width="50%">
+                    <SingleSelect
+                      style={{ width: "100%" }}
+                      required
+                      label="Assigned To"
+                      placeholder="Select One..."
+                      name="toUser"
+                      value={formData.toUser}
+                      options={toUserList}
+                      onChange={handleMagneticChange("toUser", "select")}
+                      validationError={getErrorMessage("toUser")}
+                    />
+                  </Column>
+                </Row>
+
+                <Row>
+                  <Column width="50%">
+                    <DatePickerWithEnter
+                      label="Start Date"
+                      required
+                      data-name="startDate"
+                      style={{ width: "100%" }}
+                      value={formData.startDate}
+                      onChange={handleMagneticChange("startDate", "text")}
+                      validationError={getErrorMessage("startDate")}
+                    />
+                  </Column>
+
+                  <Column width="50%">
+                    <DatePickerWithEnter
+                      label="Through Date"
+                      required
+                      data-name="throughDate"
+                      style={{ width: "100%" }}
+                      value={formData.throughDate}
+                      onChange={handleMagneticChange("throughDate", "text")}
+                      validationError={getErrorMessage("throughDate")}
+                    />
+                  </Column>
+                </Row>
+              </Grid>
+
+              <ProgressIndicator isLoading={isSaving} position="bottom" />
+            </>
+          )}
+        </PageStateContainer>
+      </div>
+    </Modal>
+  );
+};
+
+export { EditCoverageDialog };

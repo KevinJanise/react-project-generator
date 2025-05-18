@@ -1,0 +1,189 @@
+import styles from "./EditCoverageDialog.module.css";
+
+import { useState, useEffect } from "react";
+
+import { Button } from "csg-react-magnetic/button";
+import { Modal } from "csg-react-magnetic/modal";
+
+import { BlockMessage } from "components/BlockMessage";
+import { ButtonBar } from "components/ButtonBar";
+import { Grid, Row, Column } from "components/Grid";
+import { PageStateContainer, PAGE_STATE as DIALOG_STATE } from "components/PageStateContainer";
+import { ProgressIndicator } from "components/ProgressIndicator";
+
+import { useStableFunction } from "hooks/useStableFunction";
+import { useCommand } from "hooks/useCommand";
+
+import { FindAssignToCandidatesCommand } from "services/FindAssignToCandidatesCommand";
+
+import * as Utils from "utils/Utils";
+
+const EditCoverageDialog = ({ title, coverage, onStatusUpdate, onOk, onCancel, hideModal }) => {
+  const [dialogLoadingState, setDialogLoadingState] = useState(DIALOG_STATE.LOADING);
+  const [dialogInitializationErrorMessage, setDialogInitializationErrorMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const { execute, cancel: cancelCommand } = useCommand();
+
+  const clear = () => {
+    setErrorMessage(null);
+    setDialogInitializationErrorMessage(null);
+  };
+
+  const initializeDialog = useStableFunction(async () => {
+    setDialogLoadingState(DIALOG_STATE.LOADING);
+    clear();
+
+    if (!coverage) {
+      setDialogInitializationErrorMessage("coverage is required");
+      setDialogLoadingState(DIALOG_STATE.ERROR);
+
+      return;
+    }
+
+    // Executing Command should never return an error but we'll use a try-catch just in case
+    try {
+      const command = new FindAssignToCandidatesCommand(coverage.adjusterId);
+      const result = await execute(command);
+      console.log(result);
+
+      if (Math.random() < 10.5) {
+        result.isSuccess = false;
+        result.isError = true;
+        result.error = {};
+        result.error.message = "Failed to fetch";
+      }
+
+      console.log("result = ", result);
+
+      // Handle canceled request - normally because user left the page and page unmounted
+      if (result.isCanceled) return;
+
+      // Handle successful API call
+      if (result.isSuccess) {
+        // Check if assignToCandidateList was found
+        if (Utils.isObjectEmpty(result.value)) {
+          setDialogInitializationErrorMessage("assignToCandidateList was not found!");
+          setDialogLoadingState(DIALOG_STATE.ERROR);
+          return;
+        }
+
+        // Process valid assignToCandidateList
+        //        setAssignToCandidateList(result.value);
+        setDialogLoadingState(DIALOG_STATE.READY);
+        return;
+      }
+
+      // Handle API error
+      throw new Error(result.error?.message || "Unknown error occurred");
+    } catch (error) {
+      console.error("Error loading page:", error);
+      setDialogInitializationErrorMessage(`Oops! There was an error loading the dialog box. - ${error.message}`);
+      setDialogLoadingState(DIALOG_STATE.ERROR);
+    }
+  });
+
+  useEffect(() => {
+    initializeDialog();
+
+    return () => {
+      // TODO Cleanup logic if needed
+    };
+  }, [initializeDialog]);
+
+  const handleRetry = () => {
+    initializeDialog();
+  };
+
+  const handleCancel = () => {
+    cancelCommand();
+    hideModal();
+    onCancel?.();
+    onStatusUpdate({ isSuccess: true, message: "Cancel pressed!" });
+  };
+
+  const handleOk = () => {
+    hideModal();
+    onOk?.();
+    onStatusUpdate({ isSuccess: true, message: "OK pressed!" });
+  };
+
+  return (
+    <Modal
+      className={styles.editCoverageDialog}
+      width="600px"
+      title={title}
+      onClose={handleCancel}
+      footer={
+        <ButtonBar className={styles.buttonBar} align="right">
+          <Button onClick={handleOk} loading={isSaving} disabled={dialogLoadingState !== DIALOG_STATE.READY}>
+            OK
+          </Button>
+
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+        </ButtonBar>
+      }
+    >
+      <div className={styles.dialogBody}>
+        <PageStateContainer
+          errorStyle={{ marginTop: ".75rem" }}
+          loadingStyle={{ marginTop: ".75rem" }}
+          state={dialogLoadingState}
+          initializationErrorMessage={dialogInitializationErrorMessage}
+          onRetry={handleRetry}
+          renderDelay={333}
+        >
+          {dialogLoadingState === DIALOG_STATE.READY && (
+            <>
+              <BlockMessage variant="info" style={{ marginTop: "1rem", marginBottom: "1rem" }}>
+                <span>Complete the page's JSX.</span>
+              </BlockMessage>
+
+              <h2>Item Value</h2>
+
+              <Grid>
+                <Row>
+                  <Column width="50%">{JSON.stringify({ name: "Kevin" })}</Column>
+                </Row>
+              </Grid>
+
+              <ProgressIndicator isLoading={isSaving} position="bottom" />
+            </>
+          )}
+        </PageStateContainer>
+      </div>
+    </Modal>
+  );
+};
+
+export { EditCoverageDialog };
+
+
+
+.editCoverageDialog {
+  
+}
+
+.dialogBody {
+  position: relative;
+  padding: .75rem 1.4rem 1.4rem 1.4rem;
+}
+
+.buttonBar {
+  padding: .25rem 0 .25rem 0;
+  margin-right: -.5rem;
+}
+
+.question {
+  margin: 0;
+}
+
+.blockMessage {
+  margin-bottom: 0.5rem;
+}
+
+.editCoverageDialog :global(.p-dialog-content) {
+  overflow-y: visible;
+}
