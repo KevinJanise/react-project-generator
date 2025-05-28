@@ -1,0 +1,78 @@
+:root {
+  --width: 75%;
+  --height: 50px;
+}
+
+.pageLoadingIndicator {
+  display: flex;
+  align-items: center;
+  width: var(--width);
+  height: var(--height);
+}
+
+.pageLoadingIndicator .icon:global(.magIcon) {
+  font-size: var(--height);
+  color: #bebebe;
+  animation: pulseIcon 1.5s infinite;
+}
+
+.square {
+  width: var(--height);
+  height: var(--height);
+  border-radius: calc(var(--height) * 0.05);
+  margin-right: calc(var(--height) * 0.16);
+  flex-shrink: 0; /* Prevents square from shrinking */
+  xbackground-color: #dedede;
+  animation: pulse 1.5s infinite;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--height) * 0.1);
+  width: 100%; /* Take up remaining space */
+}
+
+.bar {
+  height: calc(var(--height) * 0.16);
+  border-radius: calc(var(--height) * 0.05);
+  background-color: #bebebe;
+  animation: pulse 1.5s infinite;
+}
+
+.bar:nth-child(3) {
+  animation-delay: 0s;
+  width: 100%;
+}
+.bar:nth-child(2) {
+  animation-delay: 0.2s;
+  width: 75%;
+}
+.bar:nth-child(1) {
+  animation-delay: 0.4s;
+  width: 50%;
+}
+
+@keyframes pulse {
+  0% {
+    background-color: #eee;
+  }
+  50% {
+    background-color: #bebebe;
+  }
+  100% {
+    background-color: #eee;
+  }
+}
+
+@keyframes pulseIcon {
+  0% {
+    color: #eee;
+  }
+  50% {
+    color: #bebebe;
+  }
+  100% {
+    color: #eee;
+  }
+}

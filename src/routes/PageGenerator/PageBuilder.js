@@ -35,11 +35,12 @@ class PageBuilder {
       componentConfig,
       useEffectConfig
     );
-    let errorMessageOutput = this.buildErrorMessageOutput(useEffectConfig);
     let callbackHandlers = this.buildCallbackHandlers(
       componentConfig?.callbackFunctions
     );
     let componentSourceCode = `${importStatements}
+
+const RENDER_DELAY_MS = 333;  // used to prevent flashing of loading indicator if response returns in less than this time
 
 function ${componentName} () {
 ${this.indent(useHooksStatements, 2)}${useEffectSource}${
@@ -88,8 +89,10 @@ export { ${componentName} };\n`;
     let pathParameterName = componentConfig.pathParameterName;
     let routeCode = null;
 
-    if (pathParameterName === null && parameterType === null) {
-      return "// no router parameters";
+    if (Utils.isEmpty(pathParameterName)) {
+      let path = FormatUtils.toLowerFirstLetter(pageName);
+      routeCode = `<Route exact path="/${path}" component={${pageName}} />`;
+      return routeCode;
     }
 
     if (parameterType === "STATE") {
@@ -102,6 +105,7 @@ export { ${componentName} };\n`;
     pathname: "/${path}",
     state: {
       ${pathParameterName}: "value of ${pathParameterName}",  // set key-value pairs here, value can be an object
+                                        // each one is a different property you read separately
     }
   }}
 >Anchor Text</Link>
@@ -115,7 +119,7 @@ export { ${componentName} };\n`;
       routeCode = `<Route exact path="/${path}/:${pathParameterName}" component={${pageName}} />
 
 // TODO Add link in another page and populate the ${pathParameterName} value in the URL
-<Link to="/${path}/${pathParameterName}Value">Anchor Text</Link>
+<Link to=\`/${path}/\${${pathParameterName}}\`>Anchor Text</Link>
 `;
     }
 
@@ -127,20 +131,12 @@ ${routeCode}
     return theCode;
   };
 
-  buildErrorMessageOutput(useEffectConfig) {
-    if (!useEffectConfig) return "";
-
-    return `<BlockMessage variant="error" style={{ marginBottom: "1rem" }}>
-          {errorMessage}
-        </BlockMessage>\n`;
-  }
-
   buildIsLoadingWrapper(content) {
     let loadingIndicator = `<PageStateContainer
           state={pageLoadingState}
           initializationErrorMessage={pageInitializationErrorMessage}
           onRetry={handleRetry}
-          renderDelay={333}
+          renderDelay={RENDER_DELAY_MS}
         >
           {pageState === PAGE_STATE.READY && (${this.indent(
             content,
@@ -150,18 +146,13 @@ ${routeCode}
     return loadingIndicator;
   }
 
+  buildObjectJsx(stateVar, resultCanBeEmpty) {
+    let checkVar = "has" + this.toUpperFirstLetter(stateVar);
+    let theJsx = "";
 
-
-
-
-
-      buildObjectJsx(stateVar, resultCanBeEmpty) {
-      let checkVar = "has" + this.toUpperFirstLetter(stateVar);
-      let theJsx = "";
-
-      if (resultCanBeEmpty) {
-    theJsx = `
-              {${checkVar} && (
+    if (resultCanBeEmpty) {
+      theJsx = `
+              {${checkVar} ? (
                 <h2>Item</h2>
 
                 <Grid>
@@ -175,9 +166,8 @@ ${routeCode}
                  <BlockMessage variant="info">${stateVar} is empty.</BlockMessage>
               )}
         `;
-      } else {
-theJsx =
-`
+    } else {
+      theJsx = `
               <h2>Item Value</h2>
 
               <Grid>
@@ -187,19 +177,17 @@ theJsx =
                   </Column>
                 </Row>
               </Grid>`;
-      }
-
+    }
 
     return theJsx;
   }
 
-
-    buildListJsx(stateVar, resultCanBeEmpty) {
-      let checkVar = "has" + this.toUpperFirstLetter(stateVar);
+  buildListJsx(stateVar, resultCanBeEmpty) {
+    let checkVar = "has" + this.toUpperFirstLetter(stateVar);
 
     let theJsx = `
 
-              {${checkVar} && (
+              {${checkVar} ? (
                 <h2>List of Items</h2>
 
                 <ul>
@@ -256,8 +244,7 @@ theJsx =
       message = "<p>Here is a message.</p>";
     }
 
-    jsxOutput =
-`
+    jsxOutput = `
     <div data-testid="${testId}" className={styles.${cssClass}}>
       <PageTitle title="${componentConfig.pageTitle}" />
 
@@ -280,6 +267,36 @@ theJsx =
     return jsxOutput;
   }
 
+  buildRenderPageContentJsx() {
+    let jsxOutput =
+    `
+function renderPageContent() {
+  if (!hasClaimDetail) {
+    return <BlockMessage variant="info">claimDetail is empty.</BlockMessage>;
+  }
+
+  return (
+    <>
+      <BlockMessage variant="info" className={styles.messageSpacing}>
+        <span>Complete the page's JSX.</span>
+      </BlockMessage>
+
+      <h2>Item</h2>
+      <Grid>
+        <Row>
+          <Column width="50%">
+            <p>{JSON.stringify(claimDetail)}</p>
+          </Column>
+        </Row>
+      </Grid>
+    </>
+  );
+}
+      `;
+
+    return jsxOutput;
+  }
+
   buildInitializationJsx(componentConfig, useEffectConfig) {
     if (!useEffectConfig) return this.buildSimpleJsxOutput(componentConfig);
 
@@ -296,10 +313,9 @@ theJsx =
       resultCanBeEmpty,
     } = useEffectConfig;
 
-      jsxOutput = this.buildJsxOutput(componentConfig, useEffectConfig);
+    jsxOutput = this.buildJsxOutput(componentConfig, useEffectConfig);
 
-    const code =
-    `
+    const code = `
     <div data-testid="${testId}" className={styles.${cssClass}}>
       <PageTitle title="${componentConfig.pageTitle}" />
 
@@ -308,8 +324,11 @@ theJsx =
           state={pageLoadingState}
           initializationErrorMessage={pageInitializationErrorMessage}
           onRetry={handleRetry}
-          renderDelay={333}
+          renderDelay={RENDER_DELAY_MS}
         >
+        TODO!!!!!!!!!!!! remove the following - maybe add it?
+          {pageLoadingState === PAGE_STATE.READY && renderPageContent()}
+
           {pageLoadingState === PAGE_STATE.READY && (
             <>
               <BlockMessage variant="info" style={{marginBottom: "1rem"}}>
@@ -325,28 +344,25 @@ theJsx =
     return code;
   }
 
-
-
-
-
-
   buildUseHooksStatements(componentConfig, useEffectConfig) {
     const hookArray = [];
+    const { pathParameterName } = componentConfig;
 
+    // Getting parameter from path - either in URL or from state
+    if (Utils.isNotEmpty(pathParameterName)) {
       // if using state to pass values to destination page
-    if (componentConfig?.pathParameterType === "STATE") {
-      const { pathParameterName } = componentConfig;
-
-      hookArray.push(`const location = useLocation();`);
-      hookArray.push(
-        `const { ${pathParameterName} } = location.state || {}; // get data from behind the scenes`
-      );
-    } else if (componentConfig?.pathParameterType === "PATH") {
-      // if using state to pass values to destination page
-      const { pathParameterName } = componentConfig;
-      hookArray.push(
-        `const { ${pathParameterName} } = useParams();  // get ${pathParameterName} from URL`
-      );
+      if (componentConfig?.pathParameterType === "STATE") {
+        hookArray.push(`const location = useLocation();`);
+        hookArray.push(
+          `const { ${pathParameterName} } = location.state || {}; // get data from behind the scenes, list each prop`
+        );
+      } else if (componentConfig?.pathParameterType === "PATH") {
+        // if using state to pass values to destination page
+        const { pathParameterName } = componentConfig;
+        hookArray.push(
+          `const { ${pathParameterName} } = useParams();  // get ${pathParameterName} from URL`
+        );
+      }
     }
 
     if (useEffectConfig?.commandStateVar) {
@@ -364,11 +380,19 @@ theJsx =
       hookArray.push(
         `const [pageInitializationErrorMessage, setPageInitializationErrorMessage] = useState(null);`
       );
-      hookArray.push(`const [errorMessage, setErrorMessage] = useState(null);`);
+
       hookArray.push(`const { execute } = useCommand();`);
 
-      hookArray.push(`const has${this.toUpperFirstLetter(commandStateVar)} = Utils.isNotEmpty(${commandStateVar});`);
+      hookArray.push(
+        `const has${this.toUpperFirstLetter(
+          commandStateVar
+        )} = Utils.isNotEmpty(${commandStateVar});`
+      );
     }
+
+// if command param names is not a subset of path params then they may be getting the
+// values from a user state variable to put a comment to that effect
+//    if (pathParameterName !== )
 
     return this.toMergedString(hookArray);
   }
@@ -384,8 +408,7 @@ theJsx =
       resultCanBeEmpty,
     } = useEffectConfig;
 
-    let emptyTest =
-`
+    let emptyTest = `
         // Check if ${commandStateVar} was found
         if (Utils.isObjectEmpty(result.value)) {
           setPageInitializationErrorMessage("${commandStateVar} was not found!");
@@ -400,23 +423,22 @@ theJsx =
 
     const initialState = stateVarIsList ? "[]" : "null";
 
-        const checks = commandParams
-      .map((p) =>
-`if (!${p}) {
+    const checks = commandParams
+      .map(
+        (p) =>
+          `if (!${p}) {
       setPageInitializationErrorMessage("${p} is required");
       setPageLoadingState(PAGE_STATE.ERROR);
 
       return;
-    }`)
+    }`
+      )
       .join("\n      ");
 
-
-let code =
-`
+    let code = `
 
   const clear = () => {
     set${this.toUpperFirstLetter(commandStateVar)}(${initialState});
-    setErrorMessage(null);
     setPageInitializationErrorMessage(null);
   };
 
@@ -455,7 +477,7 @@ let code =
     initializePage();
 
     return () => {
-      // TODO Cleanup logic if needed
+      // TODO - Do cleanup logic when page unmounts if needed
     };
   }, [initializePage]);
 
@@ -466,77 +488,6 @@ let code =
     return code;
   }
 
-  buildUseEffect(useEffectConfig) {
-    if (!useEffectConfig) return "";
-
-    const {
-      commandName,
-      commandParams = [],
-      commandStateVar,
-      stateVarIsList,
-    } = useEffectConfig;
-
-    const initialState = stateVarIsList ? "[]" : "null";
-
-    const dependencyList = ["execute", ...commandParams];
-    const checks = commandParams
-      .map((p) => `if (!${p}) { setErrorMessage("${p} is required"); return; }`)
-      .join("\n      ");
-
-    return `
-
-  const clear = () => {
-      set${this.toUpperFirstLetter(commandStateVar)}(${initialState});
-      setErrorMessage(null);
-      setIsInitialized(false);
-  };
-
-  const initializePage = useStableFunction(async () => {
-      setPageLoadingState(PAGE_STATE.LOADING);
-      clear();
-
-      ${checks}
-
-      const command = new ${commandName}(${commandParams.join(", ")});
-      const result = await execute(command);
-
-      if (result.isCanceled) return;
-
-      if (result.isSuccess) {
-        set${this.toUpperFirstLetter(commandStateVar)}(result.value);
-      } else {
-        setErrorMessage("Error retrieving ${commandStateVar}");
-      }
-
-
-
-    if (result.isSuccess) {
-      set${this.toUpperFirstLetter(commandStateVar)}(result.value);
-
-      // Do an error check here, was value retrieved as expected?
-      if (Utils.isEmpty(${commandStateVar})) {
-        setPageLoadingState(PAGE_STATE.ERROR);
-        setPageInitializationErrorMessage("Error retrieving ${commandStateVar}");
-      } else {
-        setPageLoadingState(PAGE_STATE.READY);
-      }
-    } else {
-      console.error(result.error);
-      setPageLoadingState(PAGE_STATE.ERROR);
-      setPageInitializationErrorMessage("Oops! There was an error loading the page.");
-    }
-  };
-
-  useEffect(() => {
-    initializePage();
-
-    return () => {
-      // TODO Cleanup logic if needed
-    };
-  }, [initializePage]);
-
-  \n`;
-  }
 
   // returns an array of import statements each of which is a string
   buildImports(componentConfig, useEffectConfig) {
@@ -544,11 +495,11 @@ let code =
     let imports = [];
 
     imports.push(
-      `import styles from "./${componentConfig.componentName}.module.css";\n`
+      `import styles from "./${componentConfig.componentName}.module.css";`
     );
 
     if (useEffectConfig) {
-      imports.push('\nimport { useState, useEffect } from "react";');
+      imports.push('\nimport { useEffect, useState } from "react";');
     }
 
     if (componentConfig.pathParameterType === "PATH") {
@@ -561,23 +512,23 @@ let code =
 
     imports.push(`import { BlockMessage } from "components/BlockMessage";`);
     imports.push(`import { Grid, Row, Column } from "components/Grid";`);
+    imports.push(`import { PageSection } from "components/PageSection";`);
     if (useEffectConfig) {
       imports.push(
         `import { PageStateContainer, PAGE_STATE } from "components/PageStateContainer";`
       );
     }
-    imports.push(`import { PageSection } from "components/PageSection";`);
     imports.push(`import { PageTitle } from "components/PageTitle";\n`);
 
     if (useEffectConfig) {
+      imports.push('import { useCommand } from "hooks/useCommand";');
       imports.push(
         `import { useStableFunction } from "hooks/useStableFunction";`
       );
-      imports.push('import { useCommand } from "hooks/useCommand";');
       imports.push(
-        `import { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`
+        `\nimport { ${useEffectConfig.commandName} } from "services/${useEffectConfig.commandName}";`
       );
-      imports.push('import * as Utils from "utils/Utils";');
+      imports.push('\nimport * as Utils from "utils/Utils";');
     }
 
     return imports.filter(Boolean).join("\n");
@@ -596,9 +547,12 @@ let code =
         let onHandler = Utils.convertHandleToOn(cb);
 
         const handler = `${cb}`;
-        return `  const ${handler} = (params) => {
+        return `  const ${handler} = (paramsFromChild) => {
     // TODO callback allowing a child component to return informaton to ${this.componentConfig.componentName} page
     //      pass into child's parameters as ${onHandler} = {${handler}}
+    //
+    //       const ${handler} = (paramFromParent, paramsFromChild) => {
+    //       ${onHandler}={(paramsFromChild) => ${handler}(paramFromParent, paramsFromChild)}
   }`;
       })
       .join("\n\n");

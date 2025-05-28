@@ -95,7 +95,7 @@ function PageGenerator({
         // basic info
         componentName: "ClaimActivity",
         pageTitle: "Claim Activity",
-        callbackFunctions: [], //["handleOnEdit", "handleOnDelete"],
+        callbackFunctions: ["handleOnEdit", "handleOnDelete"],
 
         // navigation to page
         pathParameterName: "claimInfo",
@@ -106,18 +106,17 @@ function PageGenerator({
         commandName: "FindClaimDetail",
         commandParams: ["claimInfo"],
         commandStateVar: "claimDetail",
-        showIsLoading: true,
         stateVarIsList: false,
-        resultCanBeEmpty: false
+        resultCanBeEmpty: true
       },
     };
 
-    // config = config2;
+     config = config2;
 
     // config.component.pathParameterName = null;
     // config.component.pathParameterType = null;
 
-     // config.useEffectConfig = null;
+    // config.useEffectConfig = null;
 
     return config;
   };

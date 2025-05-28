@@ -114,6 +114,41 @@ export function isObjectEmpty(obj) {
   return Object.keys(obj).length === 0;
 }
 
+export function isEmpty(obj) {
+  // Check if the input is null, undefined, or an empty string
+  if (obj === null || obj === undefined || obj === "") {
+    return true;
+  }
+
+  // Check if it's an object or array
+  if (typeof obj !== 'object') {
+    return false;
+  }
+
+  // If it's an array, check if it's empty or if all elements are empty
+  if (Array.isArray(obj)) {
+    return obj.length === 0 || obj.every(isEmpty);
+  }
+
+  // For objects, check each property
+  for (let key in obj) {
+    if (Object.hasOwn(obj, key)) {
+      const value = obj[key];
+
+      // Check if the value is empty
+      if (!isEmpty(value)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function isNotEmpty(value) {
+  return !isEmpty(value);
+}
+
 // For security reasons, the Clipboard API only works in secure contexts (HTTPS)
 // and requires user permission. The permission is usually granted automatically
 // when triggered by a user action like a button click.
