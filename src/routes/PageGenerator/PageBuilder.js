@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import * as FormatUtils from "utils/FormatUtils";
 import * as Utils from "utils/Utils";
 
@@ -38,10 +39,12 @@ class PageBuilder {
     let callbackHandlers = this.buildCallbackHandlers(
       componentConfig?.callbackFunctions
     );
-    let componentSourceCode = `${importStatements}
 
-const RENDER_DELAY_MS = 333;  // used to prevent flashing of loading indicator if response returns in less than this time
-
+    let decl = "";
+    if (useEffectConfig) {
+      decl = "\n\nconst RENDER_DELAY_MS = 333;  // used to prevent flashing of loading indicator if response returns in less than this time\n";
+    }
+    let componentSourceCode = `${importStatements}${decl}
 function ${componentName} () {
 ${this.indent(useHooksStatements, 2)}${useEffectSource}${
       callbackHandlers.jsCode
@@ -153,6 +156,7 @@ ${routeCode}
     if (resultCanBeEmpty) {
       theJsx = `
               {${checkVar} ? (
+              <>
                 <h2>Item</h2>
 
                 <Grid>
@@ -162,6 +166,7 @@ ${routeCode}
                     </Column>
                   </Row>
                 </Grid>
+              </>
               ) : (
                  <BlockMessage variant="info">${stateVar} is empty.</BlockMessage>
               )}
@@ -188,6 +193,7 @@ ${routeCode}
     let theJsx = `
 
               {${checkVar} ? (
+              <>
                 <h2>List of Items</h2>
 
                 <ul>
@@ -196,6 +202,7 @@ ${routeCode}
                     <li key={item?.id ?? index}>{JSON.stringify(item)}</li>
                   ))}
                 </ul>
+              </>
               ) : (
                  <BlockMessage variant="info">${stateVar} is empty.</BlockMessage>
               )}
