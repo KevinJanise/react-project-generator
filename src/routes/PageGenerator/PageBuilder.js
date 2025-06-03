@@ -557,9 +557,8 @@ function renderPageContent() {
         return `  const ${handler} = (paramsFromChild) => {
     // TODO callback allowing a child component to return informaton to ${this.componentConfig.componentName} page
     //      pass into child's parameters as ${onHandler} = {${handler}}
-    //
-    //       const ${handler} = (paramFromParent, paramsFromChild) => {
-    //       ${onHandler}={(paramsFromChild) => ${handler}(paramFromParent, paramsFromChild)}
+    // <ChildComponent ${onHandler}={${handler}} />
+    //  in child component ${onHandler}(valuesForParent);
   }`;
       })
       .join("\n\n");
